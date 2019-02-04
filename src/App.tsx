@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import * as AutoTrigger from './util/auto-trigger.js'
+// import * as AutoTrigger from './content.js'
 import logo from './logo.svg';
 import './App.css';
 
@@ -19,7 +19,7 @@ class App extends React.Component<any,States> {
 
   public componentDidMount() {
     navigator.mediaDevices.getUserMedia({audio: true})
-    AutoTrigger.autoTrigger();
+    // AutoTrigger.autoTrigger();
   }
 
   private async getMicrophone() {

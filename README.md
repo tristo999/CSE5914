@@ -1,6 +1,8 @@
 STEP 1. INSTALL YARN TO RUN THIS PROJECT NOT NPM
 -------------------------------------------------
 
+Followed this tutorial for setup: https://itnext.io/create-chrome-extension-with-reactjs-using-inject-page-strategy-137650de1f39
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
