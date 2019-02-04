@@ -4,7 +4,6 @@
   "name": "MusicBuddy",
   "description": "This extension is a part of the CSE5914 capstone project",
   "version": "0.0.1",
-
   "browser_action": {
     "default_popup": "index.html",
     "default_title": "Open the popup"
@@ -14,7 +13,8 @@
     "48": "logo-small.svg",
     "128": "logo-small.svg"
   },
-  "content_security_policy": "script-src 'self' 'sha256-GgRxrVOKNdB4LrRsVPDSbzvfdV4UqglmviH9GoBJ5jk='; object-src 'self'",
+  "content_security_policy": "script-src 'self' 'sha256-SYPdQPbKAlQ9ucDawrhRoRICELR/7Nz4M7y+B2MM4us='; object-src 'self'",
   "permissions": [
+    "tabs"
   ]
 }
