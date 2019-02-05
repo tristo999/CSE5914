@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-// import * as AutoTrigger from './content.js'
+import AudioAnalyser from './components/audio-analyzer/audio-analyzer';
 import logo from './logo.svg';
 import './App.css';
 
@@ -17,20 +17,41 @@ class App extends React.Component<any,States> {
     this.toggleMicrophone = this.toggleMicrophone.bind(this);
   }
 
-  public componentDidMount() {
-    navigator.mediaDevices.getUserMedia({audio: true})
-    // AutoTrigger.autoTrigger();
+  public async componentDidMount() {
+    // this.setAudioGlobalStore()
   }
 
-  private async getMicrophone() {
+  private async setAudioGlobalStore() {
     const audio = await navigator.mediaDevices.getUserMedia({
       audio: true,
     });
-    this.setState({ audio });
+    this.setState({audio});
+    // console.log(audio);
+    // console.log(JSON.stringify(audio))
+    // localStorage.setItem("audioRecorder", JSON.stringify(audio));
+  }
+
+  private async getMicrophone() {
+    // if(localStorage.getItem("audioRecoder") != null && JSON.parse(localStorage.getItem("audioRecoder")!).length > 0) {
+    //   let currentMediaObj = JSON.parse(localStorage.getItem("audioRecoder")!);
+    //   let newMediaStreamObj = currentMediaObj.clone();
+    //   this.setState({ audio: newMediaStreamObj });
+    // }
+    // else {
+    //   this.setAudioGlobalStore();
+    //   this.setState({ audio: JSON.parse(localStorage.getItem("audioRecoder")!) });
+    // }    
+    const audio = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+    });
+    this.setState({audio});
   }
 
   private stopMicrophone() {
-    this.state.audio.getTracks().forEach((track: any) => track.stop());
+    this.state.audio.getTracks().forEach((track: any) => {
+      console.log(track);
+      track.stop();
+    });
     this.setState({ audio: null });
   }
 
@@ -64,6 +85,7 @@ class App extends React.Component<any,States> {
         <button onClick={this.toggleMicrophone}>
               {this.state.audio ? 'Stop microphone' : 'Get microphone input'}
         </button>
+        {this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}
       </div>
     );
   }
