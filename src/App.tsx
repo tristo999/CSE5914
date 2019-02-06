@@ -18,7 +18,7 @@ class App extends React.Component<any,States> {
   }
 
   public componentDidMount() {
-    navigator.mediaDevices.getUserMedia({audio: true})
+    navigator.mediaDevices.getUserMedia({audio: true});
     // AutoTrigger.autoTrigger();
   }
 
@@ -51,6 +51,8 @@ class App extends React.Component<any,States> {
           <p>
             Edit <code>src/App.tsx</code> and save to reload.
           </p>
+          
+          <p>Testing Travis</p>
           <p>Testing the text input</p>
           <a
             className="App-link"
