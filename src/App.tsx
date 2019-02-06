@@ -1,8 +1,17 @@
 import React, { Component } from 'react';
 import AudioAnalyser from './components/audio-analyzer/audio-analyzer';
 import logo from './logo.svg';
+import { connect } from 'react-redux'
+import { State } from './redux/reducers'
+import { getMediaStream } from './redux/selectors'
+import { setMediaStream } from './redux/actions/media'
 import './App.css';
 
+
+interface Props {
+  handleSubmit: (value: string) => void
+  mediaStream: any;
+}
 interface States {
   audio: any
 }
@@ -15,43 +24,46 @@ class App extends React.Component<any,States> {
       audio: null
     }
     this.toggleMicrophone = this.toggleMicrophone.bind(this);
+    this._handleSubmit = this._handleSubmit.bind(this)
   }
 
-  public async componentDidMount() {
-    // this.setAudioGlobalStore()
-  }
+  // public async componentDidMount() {
+    // this.setAudioLocalStore()
+  // }
 
-  private async setAudioGlobalStore() {
+  private async setAudioLocalStore() {
     const audio = await navigator.mediaDevices.getUserMedia({
       audio: true,
     });
-    this.setState({audio});
-    // console.log(audio);
-    // console.log(JSON.stringify(audio))
-    // localStorage.setItem("audioRecorder", JSON.stringify(audio));
+    this.setState({audio},() => {
+      this._handleSubmit();
+    });
   }
 
   private async getMicrophone() {
-    // if(localStorage.getItem("audioRecoder") != null && JSON.parse(localStorage.getItem("audioRecoder")!).length > 0) {
-    //   let currentMediaObj = JSON.parse(localStorage.getItem("audioRecoder")!);
-    //   let newMediaStreamObj = currentMediaObj.clone();
-    //   this.setState({ audio: newMediaStreamObj });
-    // }
-    // else {
-    //   this.setAudioGlobalStore();
-    //   this.setState({ audio: JSON.parse(localStorage.getItem("audioRecoder")!) });
-    // }    
-    const audio = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-    });
-    this.setState({audio});
+    if(this.props.mediaStream) {
+      // this.setAudioLocalStore();
+      //check that media stream is in redux
+      let currentMediaObj = this.props.mediaStream;
+      currentMediaObj.getTracks().forEach((track: any) => {
+        track.enabled = true;
+      });
+      // currentTrack.enabled = true
+      this.setState({ audio: currentMediaObj },() => {
+        this._handleSubmit();
+      });
+    }
+    else {
+      this.setAudioLocalStore();
+    }    
+    
   }
 
   private stopMicrophone() {
     this.state.audio.getTracks().forEach((track: any) => {
-      console.log(track);
-      track.stop();
+      track.enabled = false;
     });
+    this._handleSubmit();
     this.setState({ audio: null });
   }
 
@@ -61,6 +73,11 @@ class App extends React.Component<any,States> {
     } else {
       this.getMicrophone();
     }
+  }
+
+  private _handleSubmit() {
+    console.log(this.state.audio);
+    this.props.handleSubmit(this.state.audio)
   }
 
   render() {
@@ -91,4 +108,15 @@ class App extends React.Component<any,States> {
   }
 }
 
-export default App;
+
+const mapStateToProps = (state: State) => ({
+  mediaStream: getMediaStream(state)
+})
+
+const mapDispatchToProps = {
+  handleSubmit: setMediaStream
+}
+
+export default connect<any, any, any>(mapStateToProps as any, mapDispatchToProps)(App)
+
+// export default App;
