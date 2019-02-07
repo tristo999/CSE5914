@@ -62,3 +62,8 @@ declare module '*.module.sass' {
   const classes: { [key: string]: string };
   export default classes;
 }
+
+interface RefObject<T> {
+  // immutable
+  readonly current: T | null
+}
