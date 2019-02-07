@@ -4,13 +4,7 @@ import AudioAnalyser from './components/audio-analyzer/audio-analyzer';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Frame, { FrameContextConsumer }from 'react-frame-component';
-import {Provider} from 'react-redux';
-import {Store} from 'react-chrome-redux';
 import "./content.css";
-
-const store = new Store({
-  portName: 'MY_APP' // communication port name
-});
    
 class ExtensionBase extends React.Component{
    constructor(props) {
@@ -104,15 +98,13 @@ function toggle(){
 }
 
 document.body.appendChild(app);
-// ReactDOM.render(<ExtensionBase />, app);
+ReactDOM.render(<ExtensionBase />, app);
 
 // wait for the store to connect to the background page
-store.ready().then(() => {
-  // The store implements the same interface as Redux's store
-  // so you can use tools like `react-redux` no problem!
-  ReactDOM.render(
-    <Provider store={store}>
-      <ExtensionBase />
-    </Provider>
-    ,app);
-});
+// store.ready().then(() => {
+//   // The store implements the same interface as Redux's store
+//   // so you can use tools like `react-redux` no problem!
+//   ReactDOM.render(
+//       <ExtensionBase />
+//     ,app);
+// });

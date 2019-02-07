@@ -76,7 +76,6 @@ class App extends React.Component<any,States> {
   }
 
   private _handleSubmit() {
-    console.log(this.state.audio);
     this.props.handleSubmit(this.state.audio)
   }
 
