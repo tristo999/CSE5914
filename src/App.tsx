@@ -52,7 +52,7 @@ class App extends React.Component<any,States> {
             Edit <code>src/App.tsx</code> and save to reload.
           </p>
           
-          <p>Testing Travis</p>
+          <p>Travis should not commit</p>
           <p>Testing the text input</p>
           <a
             className="App-link"
