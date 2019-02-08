@@ -8,4 +8,9 @@ chrome.browserAction.onClicked.addListener(function(tab) {
               {"message": "clicked_browser_action"}
           );
     });
- });
+});
+
+chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
+    alert("message received");
+});
+

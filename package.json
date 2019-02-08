@@ -23,6 +23,7 @@
     "bfj": "6.1.1",
     "case-sensitive-paths-webpack-plugin": "2.1.2",
     "chalk": "2.4.1",
+    "chrome": "^0.1.0",
     "cookie-parser": "^1.4.3",
     "cors": "^2.8.4",
     "cryptiles": ">=4.1.2",

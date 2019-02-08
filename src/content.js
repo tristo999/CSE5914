@@ -9,7 +9,8 @@ import "./content.css";
 class ExtensionBase extends React.Component{
    constructor(props) {
       super(props);
-      this.state = {audio: null};
+       this.state = { audio: null };
+       this.state = { test: null };
       this.toggleMicrophone = this.toggleMicrophone.bind(this);
 
     }
@@ -26,7 +27,9 @@ class ExtensionBase extends React.Component{
       const audio = await navigator.mediaDevices.getUserMedia({
         audio: true,
       });
-      this.setState({audio});
+       this.setState({ audio });
+
+
       // if(localStorage.getItem("audioRecoder") != null && JSON.parse(localStorage.getItem("audioRecoder")).length > 0) {
       //    let currentMediaObj = JSON.parse(localStorage.getItem("audioRecoder"));
       //   let newMediaStreamObj = currentMediaObj.clone();
@@ -49,6 +52,13 @@ class ExtensionBase extends React.Component{
         this.getMicrophone();
       }
     }
+
+    testButton() {
+            var event = document.createEvent('Event');
+            event.initEvent('hello');
+            document.dispatchEvent(event);
+
+    }
   
     render() {
         return (
@@ -60,13 +70,16 @@ class ExtensionBase extends React.Component{
                       // Render Children
                       return (
                          <div className={'my-extension'}>
-                            <h1>Hello world - My first Extension</h1>
+                            <h1>I wish this would work :(</h1>
 
                             <button onClick={this.toggleMicrophone}>
                                  {this.state.audio ? 'Stop microphone' : 'Get microphone input'}
                            </button>
-                           {this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}
+                              {this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}
 
+                           <button onClick={this.testButton}>
+                               {this.state.test ? 'SpotifyIsDumb' : 'LoginToSpotify'}
+                           </button>
                          </div>
                       )
                    }
@@ -99,6 +112,9 @@ function toggle(){
 
 document.body.appendChild(app);
 ReactDOM.render(<ExtensionBase />, app);
+document.addEventListener("hello", function (data) {
+    chrome.runtime.sendMessage("test");
+});
 
 // wait for the store to connect to the background page
 // store.ready().then(() => {
