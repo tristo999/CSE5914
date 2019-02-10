@@ -11,6 +11,14 @@ chrome.browserAction.onClicked.addListener(function(tab) {
 });
 
 chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
-    alert("message received");
+	var client_id = "ca4a29d332694630a30e62ae07b2d227";
+	var redirectUri = chrome.identity.getRedirectURL() + "spotify";
+
+	chrome.identity.launchWebAuthFlow({
+	  "url": "https://accounts.spotify.com/authorize?client_id="+client_id+
+			 "&redirect_uri="+ encodeURIComponent(redirectUri) +	
+			 "&response_type=token", 
+	  'interactive': true,  
+	},function(redirect_url) {console.log(redirect_url);});
 });
 

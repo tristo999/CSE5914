@@ -29,5 +29,7 @@
   "web_accessible_resources": [
     "/static/css/content.css",
     "/oauth2/*"
-  ]
+  ],
+  "permissions": ["identity"]
+
 }
