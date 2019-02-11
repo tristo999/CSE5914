@@ -57,6 +57,7 @@ class ExtensionBase extends React.Component{
             var event = document.createEvent('Event');
             event.initEvent('hello');
             document.dispatchEvent(event);
+			console.log("Opening AUTH");
 
     }
   

@@ -1,11 +1,12 @@
 {
   "ExpandedNodes": [
     "",
+    "\\authorization_code",
     "\\build",
     "\\public",
     "\\public\\app",
     "\\src"
   ],
-  "SelectedNode": "\\public\\manifest.json",
+  "SelectedNode": "\\authorization_code\\app.js",
   "PreviewInSolutionExplorer": false
 }
