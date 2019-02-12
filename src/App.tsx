@@ -28,7 +28,7 @@ class App extends React.Component<any,States> {
         this.setState({
           blocked: true
         });
-        // do something
+      
     });
      
       
@@ -41,8 +41,7 @@ class App extends React.Component<any,States> {
     const audio = await navigator.mediaDevices.getUserMedia({
       audio: true,
     });
-    console.log("2");
-    console.log(audio);
+    
     this.setState({ audio });
   }
 
@@ -55,7 +54,7 @@ class App extends React.Component<any,States> {
     if (this.state.audio) {
       this.stopMicrophone();
     } else {
-    
+     
       this.getMicrophone();
     }
   }
