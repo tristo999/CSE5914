@@ -4,7 +4,8 @@ import logo from './logo.svg';
 import './App.css';
 
 interface States {
-  audio: any
+  audio: any;
+  blocked: boolean;
 }
 
 class App extends React.Component<any,States> {
@@ -12,13 +13,27 @@ class App extends React.Component<any,States> {
   constructor(props: any) {
     super(props);
     this.state = {
-      audio: null
-    }
+      audio: null,
+      blocked: false
+      
+    };
+    
     this.toggleMicrophone = this.toggleMicrophone.bind(this);
   }
 
   public componentDidMount() {
-    navigator.mediaDevices.getUserMedia({audio: true});
+    var a = null;
+      a = navigator.mediaDevices.getUserMedia({audio: true}).catch(()=> {
+        
+        this.setState({
+          blocked: true
+        });
+        // do something
+    });
+     
+      
+      
+    
     // AutoTrigger.autoTrigger();
   }
 
@@ -26,6 +41,8 @@ class App extends React.Component<any,States> {
     const audio = await navigator.mediaDevices.getUserMedia({
       audio: true,
     });
+    console.log("2");
+    console.log(audio);
     this.setState({ audio });
   }
 
@@ -38,6 +55,7 @@ class App extends React.Component<any,States> {
     if (this.state.audio) {
       this.stopMicrophone();
     } else {
+    
       this.getMicrophone();
     }
   }
@@ -51,9 +69,7 @@ class App extends React.Component<any,States> {
           <p>
             Edit <code>src/App.tsx</code> and save to reload.
           </p>
-          
-          <p>Travis should not commit</p>
-          <p>Testing the text input</p>
+        
           <a
             className="App-link"
             href="https://reactjs.org"
@@ -63,7 +79,7 @@ class App extends React.Component<any,States> {
             Learn React
           </a>
         </header>
-        <button onClick={this.toggleMicrophone}>
+        <button disabled={this.state.blocked} onClick={this.toggleMicrophone}>
               {this.state.audio ? 'Stop microphone' : 'Get microphone input'}
         </button>
       </div>
