@@ -21,7 +21,9 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
 	  'interactive': true,  
 	},
 	function(redirect_url) {
-		console.log(redirect_url);
+        console.log(redirect_url);
+        vars = getUrlVars(
 	});
 });		
+
 

@@ -5,7 +5,9 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Frame, { FrameContextConsumer }from 'react-frame-component';
 import "./content.css";
-   
+
+var token = '';
+
 class ExtensionBase extends React.Component{
    constructor(props) {
       super(props);
@@ -77,7 +79,8 @@ class ExtensionBase extends React.Component{
                                  {this.state.audio ? 'Stop microphone' : 'Get microphone input'}
                            </button>
                               {this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}
-
+                          </div>
+                          <div>
                            <button onClick={this.testButton}>
                                {this.state.test ? 'SpotifyIsDumb' : 'LoginToSpotify'}
                            </button>
