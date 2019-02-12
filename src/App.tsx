@@ -13,7 +13,8 @@ interface Props {
   mediaStream: any;
 }
 interface States {
-  audio: any
+  audio: any;
+  blocked: boolean;
 }
 
 class App extends React.Component<any,States> {
@@ -21,10 +22,30 @@ class App extends React.Component<any,States> {
   constructor(props: any) {
     super(props);
     this.state = {
-      audio: null
-    }
+      audio: null,
+      blocked: false
+      
+    };
+    
     this.toggleMicrophone = this.toggleMicrophone.bind(this);
     this._handleSubmit = this._handleSubmit.bind(this)
+  }
+
+
+  public componentDidMount() {
+    var a = null;
+      a = navigator.mediaDevices.getUserMedia({audio: true}).catch(()=> {
+        
+        this.setState({
+          blocked: true
+        });
+      
+    });
+     
+      
+      
+    
+    // AutoTrigger.autoTrigger();
   }
 
 
@@ -40,6 +61,7 @@ class App extends React.Component<any,States> {
     const audio = await navigator.mediaDevices.getUserMedia({
       audio: true,
     });
+
     this.setState({audio},() => {
       this._handleSubmit();
     });
@@ -62,6 +84,7 @@ class App extends React.Component<any,States> {
       this.setAudioLocalStore();
     }    
     
+
   }
 
   private stopMicrophone() {
@@ -76,6 +99,7 @@ class App extends React.Component<any,States> {
     if (this.state.audio) {
       this.stopMicrophone();
     } else {
+     
       this.getMicrophone();
     }
   }
@@ -93,9 +117,7 @@ class App extends React.Component<any,States> {
           <p>
             Edit <code>src/App.tsx</code> and save to reload.
           </p>
-          
-          <p>Testing Travis</p>
-          <p>Testing the text input</p>
+        
           <a
             className="App-link"
             href="https://reactjs.org"
@@ -105,7 +127,7 @@ class App extends React.Component<any,States> {
             Learn React
           </a>
         </header>
-        <button onClick={this.toggleMicrophone}>
+        <button disabled={this.state.blocked} onClick={this.toggleMicrophone}>
               {this.state.audio ? 'Stop microphone' : 'Get microphone input'}
         </button>
         {this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}
