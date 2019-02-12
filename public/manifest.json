@@ -8,13 +8,18 @@
     "default_title": "Open the popup"
   },
   "background": {
-    "scripts": ["app/background.js"]
+    "persistent": true,
+    "scripts": [
+      "app/webAudioRecorder/WebAudioRecorder.min.js",
+      "app/webAudioRecorder/WebAudioRecorderWav.min.js",
+      "app/background.js"
+    ]
   },
   "content_scripts" : [
     {
       "matches": [ "<all_urls>" ],
       "css": ["/static/css/app.css", "/static/css/content.css"],
-      "js": ["/static/js/0.chunk.js", "/static/js/content.js"]
+      "js": ["/static/js/0.chunk.js", "/static/js/content.js", "app/webAudioRecorder/WebAudioRecorder.min.js","app/webAudioRecorder/WebAudioRecorderWav.min.js" ]
     }
   ],
   "icons": {
