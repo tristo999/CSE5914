@@ -6,7 +6,11 @@ import ReactDOM from 'react-dom';
 import Frame, { FrameContextConsumer }from 'react-frame-component';
 import "./content.css";
 
+<<<<<<< HEAD
 
+=======
+var token = '';
+>>>>>>> origin/feature/GoogleIdentify
 
 class ExtensionBase extends React.Component{
    constructor(props) {
@@ -78,6 +82,11 @@ class ExtensionBase extends React.Component{
 	                               {this.state.audio ? 'Stop microphone' : 'Get microphone input'}
                            </button>
                               {this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}
+<<<<<<< HEAD
+=======
+                          </div>
+                          <div>
+>>>>>>> origin/feature/GoogleIdentify
                            <button onClick={this.testButton}>
                                {this.state.test ? 'SpotifyIsDumb' : 'LoginToSpotify'}
                            </button>
