@@ -67,6 +67,7 @@
     "resolve": "1.8.1",
     "sass-loader": "7.1.0",
     "spotify-web-api-js": "^1.2.0",
+    "spotify-web-api-node": "^4.0.0",
     "style-loader": "0.23.0",
     "terser-webpack-plugin": "1.1.0",
     "typesafe-actions": "^3.0.0",

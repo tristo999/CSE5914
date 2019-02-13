@@ -14,7 +14,7 @@
     {
       "matches": [ "<all_urls>" ],
       "css": ["/static/css/app.css", "/static/css/content.css"],
-      "js": ["/static/js/0.chunk.js", "/static/js/content.js"]
+      "js": [ "/static/js/0.chunk.js", "/static/js/content.js" ]
     }
   ],
   "icons": {
@@ -24,12 +24,13 @@
   },
   "content_security_policy": "script-src 'self' 'sha256-Wf9MlqLyvQhtxTTzbiQ3mMqkhAfzVF+lXvf3NRg/duw='; object-src 'self'",
   "permissions": [
-    "tabs"
+    "tabs",
+    "identity"
   ],
   "web_accessible_resources": [
     "/static/css/content.css",
-    "/oauth2/*"
-  ],
-  "permissions": ["identity"]
+    "/oauth2/*",
+    "/spotify-web-api-js"
+  ]
 
 }
