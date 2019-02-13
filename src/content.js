@@ -5,12 +5,13 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Frame, { FrameContextConsumer }from 'react-frame-component';
 import "./content.css";
-   
+
+
+
 class ExtensionBase extends React.Component{
    constructor(props) {
       super(props);
-       this.state = { audio: null };
-       this.state = { test: null };
+       this.state = { audio: null ,test: null, spotify: null};
       this.toggleMicrophone = this.toggleMicrophone.bind(this);
 
     }
@@ -74,14 +75,16 @@ class ExtensionBase extends React.Component{
                             <h1>I wish this would work :(</h1>
 
                             <button onClick={this.toggleMicrophone}>
-                                 {this.state.audio ? 'Stop microphone' : 'Get microphone input'}
+	                               {this.state.audio ? 'Stop microphone' : 'Get microphone input'}
                            </button>
                               {this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}
-
                            <button onClick={this.testButton}>
                                {this.state.test ? 'SpotifyIsDumb' : 'LoginToSpotify'}
                            </button>
-                         </div>
+							<button onClick={this.testButton}>
+                               {this.state.test ? 'CreatePlaylist' : 'CreatePlaylist'}
+                           </button>
+						 </div>
                       )
                    }
                 }
@@ -111,11 +114,20 @@ function toggle(){
    }
 }
 
+chrome.extension.onMessage.addListener(function(msg, sender, sendResponse) {
+
+  if (msg.action === 'access_token') {
+	console.log(msg.token)
+  }
+});
+
 document.body.appendChild(app);
 ReactDOM.render(<ExtensionBase />, app);
 document.addEventListener("hello", function (data) {
     chrome.runtime.sendMessage("test");
 });
+
+
 
 // wait for the store to connect to the background page
 // store.ready().then(() => {
