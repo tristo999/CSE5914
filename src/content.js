@@ -22,7 +22,8 @@ class ExtensionBase extends React.Component{
         speechToTextObj: null,
         test: null,
         watsonSessionId: null,
-        watsonAssistantResponse: ""
+        watsonAssistantResponse: "",
+        errorText: ""
       };
       this.list = React.createRef();
       this.toggleMicrophone = this.toggleMicrophone.bind(this);
@@ -85,7 +86,7 @@ class ExtensionBase extends React.Component{
       //start the recording process
       recorder.startRecording();
 
-      this.setState({audio: stream, recorder})
+      this.setState({audio: stream, recorder, errorText: ""})
   
        console.log("Recording started");
   
@@ -173,6 +174,10 @@ class ExtensionBase extends React.Component{
   async sendDataToWatsonAssistant() {
     let analyzedSoundObject = this.state.speechToTextObj;
     console.log(analyzedSoundObject);
+    if(analyzedSoundObject.results.length < 1) {
+      this.setState({errorText: "Unrecognized voice input, please try again"})
+      return;
+    }
     let userSpokenText = analyzedSoundObject.results[0].alternatives[0].transcript
     let curSessionId = this.state.watsonSessionId;
 
@@ -288,36 +293,36 @@ class ExtensionBase extends React.Component{
   }
 
     render() {
-        return (
-            <Frame head={[<link type="text/css" rel="stylesheet" href={chrome.runtime.getURL("/static/css/content.css")} ></link>]}> 
-              <FrameContextConsumer>
-               {
-               // Callback is invoked with iframe's window and document instances
-                   ({document, window}) => {
-                      // Render Children
-                      return (
-                         <div className={'my-extension'}>
-                            <h1>Music Buddy v0.0.1</h1>
-                            <button onClick={()=>this.toggleMicrophone(document)}>
-                                  {this.state.audio ? 'Stop recording' : 'Start Recording'}
-                            </button>
-                            <button onClick={this.triggerSpotifyAuth}>
-                                {this.state.test ? 'SpotifyIsDumb' : 'LoginToSpotify'}
-                            </button>
-                              <button onClick={() => { this.createPlaylist("Kanye West") }}>
-                                {this.state.test ? 'CreatePlaylist' : 'CreatePlaylist'}
-                            </button>
-                            {this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}
-                            <div id="recordingsList"></div>
-                            <p>{this.state.watsonAssistantResponse}</p>
-                            
-                          </div>
-                      )
-                   }
+      return (
+        <Frame head={[<link type="text/css" rel="stylesheet" href={chrome.runtime.getURL("/static/css/content.css")} ></link>]}> 
+          <FrameContextConsumer>
+            {
+            // Callback is invoked with iframe's window and document instances
+                ({document, window}) => {
+                  // Render Children
+                  return (
+                      <div className={'my-extension'}>
+                        <h1>Music Buddy v0.0.1</h1>
+                        <button onClick={()=>this.toggleMicrophone(document)}>
+                              {this.state.audio ? 'Stop recording' : 'Start Recording'}
+                        </button>
+                        <button onClick={this.triggerSpotifyAuth}>
+                            {this.state.test ? 'SpotifyIsDumb' : 'LoginToSpotify'}
+                        </button>
+                          <button onClick={() => { this.createPlaylist("Kanye West") }}>
+                            {this.state.test ? 'CreatePlaylist' : 'CreatePlaylist'}
+                        </button>
+                        {this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}
+                        <div id="recordingsList"></div>
+                        <p>{this.state.watsonAssistantResponse}</p>
+                        <p style={{color: "red"}}>{this.state.errorText}</p>
+                      </div>
+                  )
                 }
-               </FrameContextConsumer>
-            </Frame>
-        )
+            }
+            </FrameContextConsumer>
+        </Frame>
+      )
     }
 }
 
