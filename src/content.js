@@ -101,7 +101,8 @@ class ExtensionBase extends React.Component{
              s.addTracksToPlaylist(playlistID, songArray);
         });
     }
-  
+
+
     render() {
         return (
             <Frame head={[<link type="text/css" rel="stylesheet" href={chrome.runtime.getURL("/static/css/content.css")} ></link>]}> 
