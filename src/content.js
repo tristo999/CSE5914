@@ -22,7 +22,8 @@ class ExtensionBase extends React.Component{
         speechToTextObj: null,
         test: null,
         watsonSessionId: null,
-        watsonAssistantResponse: ""
+        watsonAssistantResponse: "",
+        playlistLink: ""
       };
       this.list = React.createRef();
       this.toggleMicrophone = this.toggleMicrophone.bind(this);
@@ -222,9 +223,10 @@ class ExtensionBase extends React.Component{
         var artist_name = "Undefined";
         for (j = 0; j < assistantResponse.entities.length; j ++)
         {
-          if (assistantResponse.entities[j].entiy === "artist")
+          if (assistantResponse.entities[j].entity === "artist")
           {
             artist_name = assistantResponse.entities[j].value
+            this.createPlaylist(artist_name);
           }
         }
       }
@@ -263,6 +265,7 @@ class ExtensionBase extends React.Component{
                   console.log(playlistData);
                   var playlistID = playlistData.id;
                   this.addSongsArtist(name, 10, playlistID);
+                  this.setState({playlistLink : playlistData.external_urls.spotify});
               });
           });
       } else {
@@ -310,7 +313,7 @@ class ExtensionBase extends React.Component{
                             {this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}
                             <div id="recordingsList"></div>
                             <p>{this.state.watsonAssistantResponse}</p>
-                            
+                            <p>{this.state.playlistLink}</p>
                           </div>
                       )
                    }
