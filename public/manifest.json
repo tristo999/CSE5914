@@ -1,6 +1,5 @@
 {
   "manifest_version": 2,
-
   "name": "MusicBuddy",
   "description": "This extension is a part of the CSE5914 capstone project",
   "version": "0.0.1",
@@ -8,13 +7,28 @@
     "default_title": "Open the popup"
   },
   "background": {
-    "scripts": ["app/background.js"]
+    "persistent": true,
+    "scripts": [
+      "app/webAudioRecorder/WebAudioRecorder.min.js",
+      "app/webAudioRecorder/WebAudioRecorderWav.min.js",
+      "app/Spotify/spotify-web-api.js",
+      "app/background.js"
+    ]
   },
   "content_scripts" : [
     {
       "matches": [ "<all_urls>" ],
-      "css": ["/static/css/app.css", "/static/css/content.css"],
-      "js": ["/static/js/0.chunk.js", "/static/js/content.js"]
+      "css": [
+        "/static/css/app.css", 
+        "/static/css/content.css"
+      ],
+      "js": [
+        "/static/js/0.chunk.js", 
+        "/static/js/content.js", 
+        "app/webAudioRecorder/WebAudioRecorder.min.js",
+        "app/webAudioRecorder/WebAudioRecorderWav.min.js",
+        "app/Spotify/spotify-web-api.js" 
+      ]
     }
   ],
   "icons": {
@@ -24,9 +38,13 @@
   },
   "content_security_policy": "script-src 'self' 'sha256-Wf9MlqLyvQhtxTTzbiQ3mMqkhAfzVF+lXvf3NRg/duw='; object-src 'self'",
   "permissions": [
-    "tabs"
+    "tabs",
+    "identity"
   ],
-  "web_accessible_resources":[
-    "/static/css/content.css"
- ]
+  "web_accessible_resources": [
+    "/static/css/content.css",
+    "/oauth2/*",
+    "/spotify-web-api-js"
+  ]
+
 }
