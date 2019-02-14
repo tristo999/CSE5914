@@ -21,6 +21,8 @@ class ExtensionBase extends React.Component{
         iFrameDoc: null,
         speechToTextObj: null,
         test: null,
+        watsonSessionId: null,
+        watsonAssistantResponse: ""
       };
       this.list = React.createRef();
       this.toggleMicrophone = this.toggleMicrophone.bind(this);
@@ -122,12 +124,7 @@ class ExtensionBase extends React.Component{
     this.setState({iFrameDoc})
   }
 
-  triggerSpotifyAuth() {
-    var event = document.createEvent('Event');
-    event.initEvent('hello');
-    document.dispatchEvent(event);
-    console.log("Opening AUTH");
-  }
+
   createDownloadLink(blob,encoding) {
 	
     var url = URL.createObjectURL(blob);
@@ -148,14 +145,14 @@ class ExtensionBase extends React.Component{
     li.appendChild(au);
     li.appendChild(link);
 
-    this.state.iFrameDoc.getElementById("recordingsList").appendChild(li);
+    this.state.iFrameDoc.getElementById("recordingsList").innerHTML = li.innerHTML;
 
     this.speechToTextConversion(blob);
   }
 
   // WATSON FLOW
-  speechToTextConversion(blob) {
-    fetch("https://stream.watsonplatform.net/speech-to-text/api/v1/recognize", {
+  async speechToTextConversion(blob) {
+    await fetch("https://stream.watsonplatform.net/speech-to-text/api/v1/recognize", {
       method: "POST",
       headers: {
         "Authorization": "Basic YXBpa2V5OllROWhFV1k4T1lJeU82N0dLcVo1dU94TzFnZHZ3WTQ2cXk4dzBJbnVqZWlv",
@@ -173,14 +170,86 @@ class ExtensionBase extends React.Component{
     });  
   }
 
-  sendDataToWatsonAssistant() {
+  async sendDataToWatsonAssistant() {
     let analyzedSoundObject = this.state.speechToTextObj;
     console.log(analyzedSoundObject);
+    let userSpokenText = analyzedSoundObject.results[0].alternatives[0].transcript
+    let curSessionId = this.state.watsonSessionId;
+
+    await fetch("https://gateway.watsonplatform.net/assistant/api/v2/assistants/dbdb7d30-0fb5-4b86-8290-22a90b7b467b/sessions?version=2019-02-02", {
+      method: "POST",
+      headers: {
+        "Authorization": "Basic YXBpa2V5Ok42YVZnYndjMkhTanNFb0x0am9HQlZxaGVSXzMwSnhkbl9qUXc2bnotVUNX",
+      },
+    }).then((response) => {
+      response.json().then(async (obj) => {
+        console.log(obj);
+        await this.setState({watsonSessionId: obj.session_id}, ()=>{
+          curSessionId = obj.session_id;
+        });
+      });
+    }).catch((error) => {
+        console.log(error)
+    });
+
+    let data = {input: {text: userSpokenText}}
+
+    await fetch(`https://gateway.watsonplatform.net/assistant/api/v2/assistants/dbdb7d30-0fb5-4b86-8290-22a90b7b467b/sessions/${curSessionId}/message?version=2019-02-02`, {
+      method: "POST",
+      headers: {
+        "Authorization": "Basic YXBpa2V5Ok42YVZnYndjMkhTanNFb0x0am9HQlZxaGVSXzMwSnhkbl9qUXc2bnotVUNX",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(data)
+    }).then((response) => {
+      response.json().then((obj) => {
+        console.log(obj);
+        this.analyzeAssistantResponse(obj);
+      });
+    }).catch((error) => {
+        console.log(error)
+    });
   }
 
+  analyzeAssistantResponse(assistantResponse) {
+    let currentIntent = ""
+    assistantResponse = assistantResponse.output
+    if (assistantResponse.actions)
+    {
+      // analyzing actions
+      if (assistantResponse.actions[0].name === "make_playlist") {
+        var j;
+        var artist_name = "Undefined";
+        for (j = 0; j < assistantResponse.entities.length; j ++)
+        {
+          if (assistantResponse.entities[j].entiy === "artist")
+          {
+            artist_name = assistantResponse.entities[j].value
+          }
+        }
+      }
+    }
 
+    if (assistantResponse.intents.length > 0) {
+      currentIntent = assistantResponse.intents[0].intent;
+      //console.log('Detected intent: #' + currentIntent);
+    }
+    if (assistantResponse.generic.length > 0) {
+      this.setState({watsonAssistantResponse: assistantResponse.generic[0].text})
+      // currentIntent = response.output.intents[0].intent;
+      //console.log('Detected intent: #' + currentIntent);
+    }
+  }
 
-  // SPOTIFY FLOW
+  // SPOTIFY FLOW  
+  
+  triggerSpotifyAuth() {
+    var event = document.createEvent('Event');
+    event.initEvent('hello');
+    document.dispatchEvent(event);
+    console.log("Opening AUTH");
+  }
+
   createPlaylist(name) {
       var token = localStorage.getItem("spotifyAccessToken");
       if (token) {
@@ -239,7 +308,9 @@ class ExtensionBase extends React.Component{
                                 {this.state.test ? 'CreatePlaylist' : 'CreatePlaylist'}
                             </button>
                             {this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}
-                            <ul id="recordingsList"></ul>
+                            <div id="recordingsList"></div>
+                            <p>{this.state.watsonAssistantResponse}</p>
+                            
                           </div>
                       )
                    }
