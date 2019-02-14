@@ -23,7 +23,8 @@ class ExtensionBase extends React.Component{
         test: null,
         watsonSessionId: null,
         watsonAssistantResponse: "",
-        errorText: ""
+        errorText: "",
+        playlistLink: ""
       };
       this.list = React.createRef();
       this.toggleMicrophone = this.toggleMicrophone.bind(this);
@@ -227,9 +228,10 @@ class ExtensionBase extends React.Component{
         var artist_name = "Undefined";
         for (j = 0; j < assistantResponse.entities.length; j ++)
         {
-          if (assistantResponse.entities[j].entiy === "artist")
+          if (assistantResponse.entities[j].entity === "artist")
           {
             artist_name = assistantResponse.entities[j].value
+            this.createPlaylist(artist_name);
           }
         }
       }
@@ -268,6 +270,7 @@ class ExtensionBase extends React.Component{
                   console.log(playlistData);
                   var playlistID = playlistData.id;
                   this.addSongsArtist(name, 10, playlistID);
+                  this.setState({playlistLink : playlistData.external_urls.spotify});
               });
           });
       } else {
@@ -303,18 +306,16 @@ class ExtensionBase extends React.Component{
                   return (
                       <div className={'my-extension'}>
                         <h1>Music Buddy v0.0.1</h1>
-                        <button onClick={()=>this.toggleMicrophone(document)}>
+                        <button className="record-button" onClick={()=>this.toggleMicrophone(document)}>
                               {this.state.audio ? 'Stop recording' : 'Start Recording'}
                         </button>
-                        <button onClick={this.triggerSpotifyAuth}>
-                            {this.state.test ? 'SpotifyIsDumb' : 'LoginToSpotify'}
-                        </button>
-                          <button onClick={() => { this.createPlaylist("Kanye West") }}>
-                            {this.state.test ? 'CreatePlaylist' : 'CreatePlaylist'}
+                        <button className="login-button" onClick={this.triggerSpotifyAuth}>
+                            {this.state.test ? 'Spotify Errored Out' : 'Login With Spotify'}
                         </button>
                         {this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}
                         <div id="recordingsList"></div>
                         <p>{this.state.watsonAssistantResponse}</p>
+                        <p>{this.state.playlistLink}</p>
                         <p style={{color: "red"}}>{this.state.errorText}</p>
                       </div>
                   )
