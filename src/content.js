@@ -27,16 +27,18 @@ class ExtensionBase extends React.Component{
       this.startRecording = this.startRecording.bind(this);
       this.stopRecording = this.stopRecording.bind(this);
       this.createDownloadLink = this.createDownloadLink.bind(this);
-      this.createPlaylist = this.createPlaylist.bind(this);
+      this.createPlaylist = this.createPlaylist.bind(this);      
+      this.speechToTextConversion = this.speechToTextConversion.bind(this);
+      this.triggerSpotifyAuth = this.triggerSpotifyAuth.bind(this);
       localStorage.setItem('spotifyAccessToken', null);
     }
 
-   async setAudioGlobalStore() {
-      const audio = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
-      this.setState({audio});
-    }
+  async setAudioGlobalStore() {
+    const audio = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+    });
+    this.setState({audio});
+  }
 
   async startRecording() {
 
@@ -64,7 +66,6 @@ class ExtensionBase extends React.Component{
           console.log(encoding+" encoder loaded");
         }
       });
-<<<<<<< HEAD
   
       recorder.onComplete = (recorder, blob) => { 
         console.log("Encoding complete");
@@ -102,25 +103,31 @@ class ExtensionBase extends React.Component{
 
   stopRecording() {
     console.log("stopRecording() called");
-
-    //stop microphone access
-    // gumStream.getAudioTracks()[0].stop();
-  
-    //disable the stop button
-    // stopButton.disabled = true;
-    // recordButton.disabled = false;
     
-    //tell the recorder to finish the recording (stop recording + encode the recorded audio)
-
     let currentRecorder = this.state.recorder;
     currentRecorder.finishRecording();
     this.setState({recorder: currentRecorder});
-    this.stopMicrophone();
-
-    // this.state.recorder.finishRecording();
-  
+    this.stopMicrophone();  
+  }
+  stopMicrophone() {
+    this.state.audio.getTracks().forEach((track) => track.stop());
+    this.setState({ audio: null });
+  }
+  toggleMicrophone(iFrameDoc) {
+    if (this.state.audio) {
+      this.stopRecording()
+    } else {
+      this.startRecording();
+    }
+    this.setState({iFrameDoc})
   }
 
+  triggerSpotifyAuth() {
+    var event = document.createEvent('Event');
+    event.initEvent('hello');
+    document.dispatchEvent(event);
+    console.log("Opening AUTH");
+  }
   createDownloadLink(blob,encoding) {
 	
     var url = URL.createObjectURL(blob);
@@ -141,6 +148,13 @@ class ExtensionBase extends React.Component{
     li.appendChild(au);
     li.appendChild(link);
 
+    this.state.iFrameDoc.getElementById("recordingsList").appendChild(li);
+
+    this.speechToTextConversion(blob);
+  }
+
+  // WATSON FLOW
+  speechToTextConversion(blob) {
     fetch("https://stream.watsonplatform.net/speech-to-text/api/v1/recognize", {
       method: "POST",
       headers: {
@@ -150,129 +164,59 @@ class ExtensionBase extends React.Component{
       body: blob
     }).then((response) => {
         response.json().then((obj) => {
-          console.log(obj)
-          console.log(obj.results)
-          this.setState({})
+          this.setState({speechToTextObj: obj}, () => {
+            this.sendDataToWatsonAssistant()
+          })
         });
     }).catch((error) => {
         console.log(error)
     });  
-
-    //   body: blob, // body data type must match "Content-Type" header
-    // })
-    // Axios.post('https://stream.watsonplatform.net/speech-to-text/api/v1/recognize', blob, {
-    //   headers: {
-    //       'Authorization': 'Basic YQ9hEWY8OYIyO67GKqZ5uOO1gdvwY46qy8w0Inujeio',
-    //       'Content-Type': 'audio/wav',
-    //   },
-    // }).then(function (response) {
-    //   console.log(response)
-    //   // resultElement.innerHTML = generateSuccessHTMLOutput(response);
-    // })
-    // .catch(function (error) {
-    //   console.log(error)
-    //   // resultElement.innerHTML = generateErrorHTMLOutput(error);
-    // });   
-    // let watsonReadStream = this.state.speechToTextObj;
-    // watsonReadStream.pipe(url);
-    // let file = request(url);
-    // fs.createReadStream(file).pipe(this.state.speechToTextObj);
-
-    // https://stackoverflow.com/questions/2897619/using-html5-javascript-to-generate-and-save-a-file/4551467#4551467
-    // https://github.com/eligrey/FileSaver.js/
-    // https://stackoverflow.com/questions/39983275/use-fs-module-in-react-js-node-js-webpack-babel-express
-
-    // https://stackoverflow.com/questions/31211359/refused-to-load-the-script-because-it-violates-the-following-content-security-po - worker not loading on other tabs
-
-
-    // .pipe(fs.createWriteStream('song.mp3'))
-    // Listen for events.
-    // this.state.speechToTextObj.on('data', function(event) { this.onEvent('Data:', event); });
-    // this.state.speechToTextObj.on('error', function(event) { this.onEvent('Error:', event); });
-    // this.state.speechToTextObj.on('close', function(event) { this.onEvent('Close:', event); });
-
-  
-    this.state.iFrameDoc.getElementById("recordingsList").appendChild(li);
   }
 
-    // Display events on the console.
-    onEvent(name, event) {
-        console.log(name, JSON.stringify(event, null, 2));
-    };
-=======
-       this.setState({ audio });
+  sendDataToWatsonAssistant() {
+    let analyzedSoundObject = this.state.speechToTextObj;
+    console.log(analyzedSoundObject);
+  }
 
 
-      // if(localStorage.getItem("audioRecoder") != null && JSON.parse(localStorage.getItem("audioRecoder")).length > 0) {
-      //    let currentMediaObj = JSON.parse(localStorage.getItem("audioRecoder"));
-      //   let newMediaStreamObj = currentMediaObj.clone();
-      //   this.setState({ audio: newMediaStreamObj });
-      // }
-      // else {
-      //   this.setAudioGlobalStore();
-      //   this.setState({ audio: JSON.parse(localStorage.getItem("audioRecoder")) });
-      // }    
-    }
->>>>>>> 95250c539d1592e02764729878aac065f94c51cb
-    
-   stopMicrophone() {
-      this.state.audio.getTracks().forEach((track) => track.stop());
-      this.setState({ audio: null });
-   }
-   toggleMicrophone(iFrameDoc) {
-      if (this.state.audio) {
-        this.stopRecording()
+
+  // SPOTIFY FLOW
+  createPlaylist(name) {
+      var token = localStorage.getItem("spotifyAccessToken");
+      if (token) {
+          var s = new window.SpotifyWebApi();
+          s.setAccessToken(token);
+          s.getMe().then((value) => {
+              var userID = value.id;
+              console.log(userID);
+              var playlistBody = { "name": name };
+              s.createPlaylist(userID, playlistBody).then((playlistData) => {
+                  console.log(playlistData);
+                  var playlistID = playlistData.id;
+                  this.addSongsArtist(name, 10, playlistID);
+              });
+          });
       } else {
-        this.startRecording();
+
       }
-      this.setState({iFrameDoc})
-    }
+  }
 
-    testButton() {
-            var event = document.createEvent('Event');
-            event.initEvent('hello');
-            document.dispatchEvent(event);
-			console.log("Opening AUTH");
-
-    }
-
-    createPlaylist(name) {
-        var token = localStorage.getItem("spotifyAccessToken");
-        if (token) {
-            var s = new window.SpotifyWebApi();
-            s.setAccessToken(token);
-            s.getMe().then((value) => {
-                var userID = value.id;
-                console.log(userID);
-                var playlistBody = { "name": name };
-                s.createPlaylist(userID, playlistBody).then((playlistData) => {
-                    console.log(playlistData);
-                    var playlistID = playlistData.id;
-                    this.addSongsArtist(name, 10, playlistID);
-                });
-            });
-        } else {
-
+  addSongsArtist(name, numberOfSongs, playlistID) {
+    var token = localStorage.getItem("spotifyAccessToken");
+    var s = new window.SpotifyWebApi();
+    s.setAccessToken(token);
+    var query = "artist:" + name;
+    var searchType = ["track"];
+    var searchBody = { "limit": numberOfSongs.toString() };
+    s.search(query, searchType, searchBody).then((results) => {
+        console.log(results);
+        var songArray = [];
+        for (var i = 0; i < 9; i++) {
+            songArray[i] = results.tracks.items[i].uri;
         }
-    }
-
-     addSongsArtist(name, numberOfSongs, playlistID) {
-        var token = localStorage.getItem("spotifyAccessToken");
-        var s = new window.SpotifyWebApi();
-        s.setAccessToken(token);
-        var query = "artist:" + name;
-        var searchType = ["track"];
-        var searchBody = { "limit": numberOfSongs.toString() };
-         s.search(query, searchType, searchBody).then((results) => {
-             console.log(results);
-             var songArray = [];
-             for (var i = 0; i < 9; i++) {
-                 songArray[i] = results.tracks.items[i].uri;
-             }
-             s.addTracksToPlaylist(playlistID, songArray);
-        });
-    }
-
+        s.addTracksToPlaylist(playlistID, songArray);
+    });
+  }
 
     render() {
         return (
@@ -284,35 +228,19 @@ class ExtensionBase extends React.Component{
                       // Render Children
                       return (
                          <div className={'my-extension'}>
-                            <h1>I wish this would work :(</h1>
-
-<<<<<<< HEAD
+                            <h1>Music Buddy v0.0.1</h1>
                             <button onClick={()=>this.toggleMicrophone(document)}>
-                                 {this.state.audio ? 'Stop recording' : 'Start Recording'}
-                           </button>
-                           {this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}
-                           {/* <button onClick={this.startRecording}>
-                                 Start recording
-                           </button>
-                           <button onClick={()=>this.stopRecording(document)}>
-                                 End recording
-                           </button> */}
-                           <ul id="recordingsList"></ul>
-                         </div>
-=======
-                            <button onClick={this.toggleMicrophone}>
-	                               {this.state.audio ? 'Stop microphone' : 'Get microphone input'}
-                           </button>
-                              {this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}
-
-                           <button onClick={this.testButton}>
-                               {this.state.test ? 'SpotifyIsDumb' : 'LoginToSpotify'}
-                           </button>
+                                  {this.state.audio ? 'Stop recording' : 'Start Recording'}
+                            </button>
+                            <button onClick={this.triggerSpotifyAuth}>
+                                {this.state.test ? 'SpotifyIsDumb' : 'LoginToSpotify'}
+                            </button>
                               <button onClick={() => { this.createPlaylist("Kanye West") }}>
-                               {this.state.test ? 'CreatePlaylist' : 'CreatePlaylist'}
-                           </button>
-						 </div>
->>>>>>> 95250c539d1592e02764729878aac065f94c51cb
+                                {this.state.test ? 'CreatePlaylist' : 'CreatePlaylist'}
+                            </button>
+                            {this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}
+                            <ul id="recordingsList"></ul>
+                          </div>
                       )
                    }
                 }
