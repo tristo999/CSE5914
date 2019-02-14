@@ -6,6 +6,8 @@ import ReactDOM from 'react-dom';
 import Frame, { FrameContextConsumer } from 'react-frame-component';
 import "./content.css";
 
+// WebAudioRecorder code based on https://github.com/addpipe/simple-web-audio-recorder-demo
+
 class ExtensionBase extends React.Component{
     
     URL = window.URL || window.webkitURL;
@@ -15,18 +17,15 @@ class ExtensionBase extends React.Component{
       this.state = {
         audio: null, 
         recorder: null,
-        audioContext: null
+        audioContext: null,
+        iFrameDoc: null,
+        speechToTextObj: null,
       };
       this.list = React.createRef();
       this.toggleMicrophone = this.toggleMicrophone.bind(this);
       this.startRecording = this.startRecording.bind(this);
       this.stopRecording = this.stopRecording.bind(this);
       this.createDownloadLink = this.createDownloadLink.bind(this);
-
-    }
-
-    componentDidMount() {
-      this.list = React.createRef();
     }
 
    async setAudioGlobalStore() {
@@ -34,79 +33,9 @@ class ExtensionBase extends React.Component{
         audio: true,
       });
       this.setState({audio});
-      // localStorage.setItem("audioRecorder", JSON.stringify(audio));
-    }
-
-  
-   async getMicrophone() {
-      const audio = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: false
-      });
-
-      // let AudioContext = window.AudioContext || window.webkitAudioContext;
-      // let audioContext = new AudioContext();
-
-      // let input = audioContext.createMediaStreamSource(audio);
-      // let encodingType = 'wav';
-
-      // let recorder = new window.WebAudioRecorder(input, {
-      //   workerDir: "app/webAudioRecorder/", // must end with slash
-      //   encoding: encodingType,
-      //   numChannels:2, //2 is the default, mp3 encoding supports only 2
-      //   onEncoderLoading: function(recorder, encoding) {
-      //     // show "loading encoder..." display
-      //     console.log("Loading "+encoding+" encoder...");
-      //   },
-      //   onEncoderLoaded: function(recorder, encoding) {
-      //     // hide "loading encoder..." display
-      //     console.log(encoding+" encoder loaded");
-      //   }
-      // });
-
-      // recorder.onComplete = function(recorder, blob) { 
-      //   console.log("Encoding complete");
-      //   this.createDownloadLink(blob,recorder.encoding);
-      // }
-
-      // recorder.setOptions({
-      //   timeLimit:120,
-      //   encodeAfterRecord:true,
-      //     ogg: {quality: 0.5},
-      //     mp3: {bitRate: 160}
-      // });
-
-      // this.setState({audio, recorder, audioContext});
-
-      // if(localStorage.getItem("audioRecoder") != null && JSON.parse(localStorage.getItem("audioRecoder")).length > 0) {
-      //    let currentMediaObj = JSON.parse(localStorage.getItem("audioRecoder"));
-      //   let newMediaStreamObj = currentMediaObj.clone();
-      //   this.setState({ audio: newMediaStreamObj });
-      // }
-      // else {
-      //   this.setAudioGlobalStore();
-      //   this.setState({ audio: JSON.parse(localStorage.getItem("audioRecoder")) });
-      // }    
-
-      // context = new AudioContext()
-
-      // var source = context.createMediaStreamSource(stream)
-
-      // var rec = new Recorder(source)
-      // rec.record()
-      // todo look at this to set it up:
-      // https://addpipe.com/blog/using-recorder-js-to-capture-wav-audio-in-your-html5-web-site/
-      // let recorder = new WebAudioRecorder(audio, {
-      //   workerDir: "javascripts/"     // must end with slash
-      // });
-
-      // this.setState({recorder});
     }
 
   async startRecording() {
-    // let currentRecorder = this.state.recorder;
-    // currentRecorder.startRecording();
-    // this.setState({recorder: currentRecorder});
 
     console.log("startRecording() called");      
     var constraints = { audio: true, video:false }
@@ -118,24 +47,6 @@ class ExtensionBase extends React.Component{
       let audioContext = new AudioContext();
       let input = audioContext.createMediaStreamSource(stream);
       let encodingType = 'wav';
-  
-      //update the format 
-      // document.getElementById("formats").innerHTML="Format: 2 channel "+encodingTypeSelect.options[encodingTypeSelect.selectedIndex].value+" @ "+audioContext.sampleRate/1000+"kHz"
-  
-      //assign to gumStream for later use
-      // gumStream = stream;
-      
-      /* use the stream */
-      // input = audioContext.createMediaStreamSource(stream);
-      
-      //stop the input from playing back through the speakers
-      //input.connect(audioContext.destination)
-  
-      //get the encoding 
-      // encodingType = encodingTypeSelect.options[encodingTypeSelect.selectedIndex].value;
-      
-      //disable the encoding selector
-      // encodingTypeSelect.disabled = true;
   
       let recorder = new window.WebAudioRecorder(input, {
         workerDir: "app/webAudioRecorder/", // must end with slash
@@ -160,13 +71,14 @@ class ExtensionBase extends React.Component{
         timeLimit:120,
         encodeAfterRecord: true,
           ogg: {quality: 0.5},
-          mp3: {bitRate: 160}
+          mp3: {bitRate: 160},
+          wav: {bitRate: 160}
         });
   
       //start the recording process
       recorder.startRecording();
 
-      this.setState({recorder})
+      this.setState({audio: stream, recorder})
   
        console.log("Recording started");
   
@@ -199,6 +111,7 @@ class ExtensionBase extends React.Component{
     let currentRecorder = this.state.recorder;
     currentRecorder.finishRecording();
     this.setState({recorder: currentRecorder});
+    this.stopMicrophone();
 
     // this.state.recorder.finishRecording();
   
@@ -223,22 +136,77 @@ class ExtensionBase extends React.Component{
     //add the new audio and a elements to the li element
     li.appendChild(au);
     li.appendChild(link);
+
+    fetch("https://stream.watsonplatform.net/speech-to-text/api/v1/recognize", {
+      method: "POST",
+      headers: {
+        "Authorization": "Basic YXBpa2V5OllROWhFV1k4T1lJeU82N0dLcVo1dU94TzFnZHZ3WTQ2cXk4dzBJbnVqZWlv",
+        "Content-Type": "audio/wav"
+      },
+      body: blob
+    }).then((response) => {
+        response.json().then((obj) => {
+          console.log(obj)
+          console.log(obj.results)
+          this.setState({})
+        });
+    }).catch((error) => {
+        console.log(error)
+    });  
+
+    //   body: blob, // body data type must match "Content-Type" header
+    // })
+    // Axios.post('https://stream.watsonplatform.net/speech-to-text/api/v1/recognize', blob, {
+    //   headers: {
+    //       'Authorization': 'Basic YQ9hEWY8OYIyO67GKqZ5uOO1gdvwY46qy8w0Inujeio',
+    //       'Content-Type': 'audio/wav',
+    //   },
+    // }).then(function (response) {
+    //   console.log(response)
+    //   // resultElement.innerHTML = generateSuccessHTMLOutput(response);
+    // })
+    // .catch(function (error) {
+    //   console.log(error)
+    //   // resultElement.innerHTML = generateErrorHTMLOutput(error);
+    // });   
+    // let watsonReadStream = this.state.speechToTextObj;
+    // watsonReadStream.pipe(url);
+    // let file = request(url);
+    // fs.createReadStream(file).pipe(this.state.speechToTextObj);
+
+    // https://stackoverflow.com/questions/2897619/using-html5-javascript-to-generate-and-save-a-file/4551467#4551467
+    // https://github.com/eligrey/FileSaver.js/
+    // https://stackoverflow.com/questions/39983275/use-fs-module-in-react-js-node-js-webpack-babel-express
+
+    // https://stackoverflow.com/questions/31211359/refused-to-load-the-script-because-it-violates-the-following-content-security-po - worker not loading on other tabs
+
+
+    // .pipe(fs.createWriteStream('song.mp3'))
+    // Listen for events.
+    // this.state.speechToTextObj.on('data', function(event) { this.onEvent('Data:', event); });
+    // this.state.speechToTextObj.on('error', function(event) { this.onEvent('Error:', event); });
+    // this.state.speechToTextObj.on('close', function(event) { this.onEvent('Close:', event); });
+
   
-    console.log(li)
-    // console.log(document.getElementById("recordingsList"))
-    // document.getElementById("recordingsList").appendChild(li);
+    this.state.iFrameDoc.getElementById("recordingsList").appendChild(li);
   }
+
+    // Display events on the console.
+    onEvent(name, event) {
+        console.log(name, JSON.stringify(event, null, 2));
+    };
     
    stopMicrophone() {
       this.state.audio.getTracks().forEach((track) => track.stop());
       this.setState({ audio: null });
    }
-   toggleMicrophone() {
+   toggleMicrophone(iFrameDoc) {
       if (this.state.audio) {
-        this.stopMicrophone();
+        this.stopRecording()
       } else {
-        this.getMicrophone();
+        this.startRecording();
       }
+      this.setState({iFrameDoc})
     }
   
     render() {
@@ -253,17 +221,17 @@ class ExtensionBase extends React.Component{
                          <div className={'my-extension'}>
                             <h1>Hello world - My first Extension</h1>
 
-                            <button onClick={this.toggleMicrophone}>
-                                 {this.state.audio ? 'Stop microphone' : 'Get microphone input'}
+                            <button onClick={()=>this.toggleMicrophone(document)}>
+                                 {this.state.audio ? 'Stop recording' : 'Start Recording'}
                            </button>
                            {this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}
-                           <button onClick={this.startRecording}>
+                           {/* <button onClick={this.startRecording}>
                                  Start recording
                            </button>
-                           <button onClick={this.stopRecording}>
+                           <button onClick={()=>this.stopRecording(document)}>
                                  End recording
-                           </button>
-                           <ul id="recordingsList" ref={this.myRef}></ul>
+                           </button> */}
+                           <ul id="recordingsList"></ul>
                          </div>
                       )
                    }
@@ -282,6 +250,7 @@ app.style.display = "none";
 chrome.runtime.onMessage.addListener(
    function(request, sender, sendResponse) {
       if( request.message === "clicked_browser_action") {
+        console.log("displayed");
         toggle();
       }
    }
