@@ -49,7 +49,10 @@ function processResponse(err, response) {
    		console.log(response.output.actions[0].name);
    		//console.log(response.entities[0]);
    		//console.log(JSON.stringify(response, null, 2));
+   		
+   		//action name
    		console.log(response.output.entities[0].value);
+
    		var j;
    		var artist_name = "Undefined";
    		for (j = 0; j < response.output.entities.length; j ++)
