@@ -44,25 +44,7 @@ function processResponse(err, response) {
 
   var currentIntent;
 
-   if (response.output.actions)
-   {
-   		console.log(response.output.actions[0].name);
-   		//console.log(response.entities[0]);
-   		//console.log(JSON.stringify(response, null, 2));
-   		
-   		//action name
-   		console.log(response.output.entities[0].value);
-
-   		var j;
-   		var artist_name = "Undefined";
-   		for (j = 0; j < response.output.entities.length; j ++)
-   		{
-   			if (response.output.entities[j].entiy == "artist")
-   			{
-   				artist_name = response.output.entities[j].value
-   			}
-   		}
-   }	//var artist_name = response.output.entities[0].value
+   
    	
   // If an intent was detected, log it out to the console.
   
@@ -91,12 +73,30 @@ function processResponse(err, response) {
       });
       return;
   }
-  if (currentIntent == 'create_playlist') {
-
-  	//return artist value
+  if (response.output.actions)
+   {
+   		//console.log(response.output.actions[0].name);
+   		//console.log(response.entities[0]);
+   		//console.log(JSON.stringify(response, null, 2));
+   		
+   		//action name
+   		//console.log(response.output.entities[0].value);
+   		if (response.output.actions[0].name == "make_playlist") {
+	   		var j;
+	   		var artist_name = "Undefined";
+	   		for (j = 0; j < response.output.entities.length; j ++)
+	   		{
+	   			if (response.output.entities[j].entiy == "artist")
+	   			{
+	   				artist_name = response.output.entities[j].value
+	   			}
+	   		}
+	   		console.log("spotify.com"/*spotify function here*/);
+	   	}
   }
   // Prompt for the next round of input.
   var newMessageFromUser = readline.question(">> ");
+
     //   if (newMessageFromUser === 'quit') {
     //   service.deleteSession({
     //     assistant_id: assistantId,
