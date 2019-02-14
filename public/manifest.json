@@ -11,6 +11,7 @@
     "scripts": [
       "app/webAudioRecorder/WebAudioRecorder.min.js",
       "app/webAudioRecorder/WebAudioRecorderWav.min.js",
+      "app/Spotify/spotify-web-api.js",
       "app/background.js"
     ]
   },
@@ -25,7 +26,8 @@
         "/static/js/0.chunk.js", 
         "/static/js/content.js", 
         "app/webAudioRecorder/WebAudioRecorder.min.js",
-        "app/webAudioRecorder/WebAudioRecorderWav.min.js" 
+        "app/webAudioRecorder/WebAudioRecorderWav.min.js",
+        "app/Spotify/spotify-web-api.js" 
       ]
     }
   ],
@@ -36,9 +38,13 @@
   },
   "content_security_policy": "script-src 'self' 'sha256-Wf9MlqLyvQhtxTTzbiQ3mMqkhAfzVF+lXvf3NRg/duw='; object-src 'self'",
   "permissions": [
-    "tabs"
+    "tabs",
+    "identity"
   ],
-  "web_accessible_resources":[
-    "/static/css/content.css"
- ]
+  "web_accessible_resources": [
+    "/static/css/content.css",
+    "/oauth2/*",
+    "/spotify-web-api-js"
+  ]
+
 }
