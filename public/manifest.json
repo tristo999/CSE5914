@@ -36,10 +36,12 @@
     "48": "logo-small.svg",
     "128": "logo-small.svg"
   },
-  "content_security_policy": "script-src 'self' 'sha256-Wf9MlqLyvQhtxTTzbiQ3mMqkhAfzVF+lXvf3NRg/duw='; object-src 'self'",
+  "content_security_policy": "script-src 'self' 'sha256-Wf9MlqLyvQhtxTTzbiQ3mMqkhAfzVF+lXvf3NRg/duw='; object-src 'self' https://*.spotify.com/*",
   "permissions": [
     "tabs",
-    "identity"
+    "identity",
+    "https://*.spotify.com/*",
+    "*://*.google.com/*"
   ],
   "web_accessible_resources": [
     "/static/css/content.css",
