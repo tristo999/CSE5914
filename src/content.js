@@ -255,14 +255,33 @@ class ExtensionBase extends React.Component{
       if (assistantResponse.actions[0].name === "make_playlist") {
         var j;
         var artist_name = "Undefined";
+        var track_name = "Undefined";
+        var album_name = "Undefined";
+        var numSongs = 10;
         for (j = 0; j < assistantResponse.entities.length; j ++)
         {
           if (assistantResponse.entities[j].entity === "artist")
           {
             artist_name = assistantResponse.entities[j].value
-            this.createPlaylist(artist_name);
+            console.log(artist_name);
+          }
+          if (assistantResponse.entities[j].entity === "track")
+          {
+            track_name = assistantResponse.entities[j].value
+            console.log(track_name);
+          }
+          if (assistantResponse.entities[j].entity === "album")
+          {
+            album_name = assistantResponse.entities[j].value
+            console.log(album_name);
+          }
+          if (assistantResponse.entities[j].entity === "numTracks")
+          {
+            numSongs = assistantResponse.entities[j].value
+            console.log(numSongs);
           }
         }
+        this.createPlaylist(artist_name,track_name,album_name,numSongs);
       }
     }
 
@@ -286,7 +305,7 @@ class ExtensionBase extends React.Component{
     console.log("Opening AUTH");
   }
 
-  createPlaylist(name) {
+  createPlaylist(artist, track, album, numSongs) {
       var token = localStorage.getItem("spotifyAccessToken");
       if (token) {
           var s = new window.SpotifyWebApi();
@@ -294,11 +313,12 @@ class ExtensionBase extends React.Component{
           s.getMe().then((value) => {
               var userID = value.id;
               console.log(userID);
-              var playlistBody = { "name": name };
+              var playlistBody = { "name": artist };
               s.createPlaylist(userID, playlistBody).then((playlistData) => {
+                  console.log("Creating Playlist");
                   console.log(playlistData);
                   var playlistID = playlistData.id;
-                  SpotifyHelper.addSongsArtist(name, 10, playlistID, s);
+                  SpotifyHelper.addSongs(artist,track, album, numSongs, playlistID, s);
                   this.setState({playlistLink : playlistData.external_urls.spotify});
               });
           });
@@ -308,23 +328,6 @@ class ExtensionBase extends React.Component{
   }
 
 
-
-  // addSongsArtist(name, numberOfSongs, playlistID) {
-  //   var token = localStorage.getItem("spotifyAccessToken");
-  //   var s = new window.SpotifyWebApi();
-  //   s.setAccessToken(token);
-  //   var query = "artist:" + name;
-  //   var searchType = ["track"];
-  //   var searchBody = { "limit": numberOfSongs.toString() };
-  //   s.search(query, searchType, searchBody).then((results) => {
-  //       console.log(results);
-  //       var songArray = [];
-  //       for (var i = 0; i < 9; i++) {
-  //           songArray[i] = results.tracks.items[i].uri;
-  //       }
-  //       s.addTracksToPlaylist(playlistID, songArray);
-  //   });
-  // }
 
     render() {
       return (
