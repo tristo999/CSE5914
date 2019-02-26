@@ -4,9 +4,13 @@ import AudioAnalyser from './components/audio-analyzer/audio-analyzer';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Frame, { FrameContextConsumer } from 'react-frame-component';
+import * as SpotifyHelper from "./util/spotify/spotify-helpers";
 import "./content.css";
 
+// const SpotifyHelper = require("./util/spotify/spotify-helpers");
+
 // WebAudioRecorder code based on https://github.com/addpipe/simple-web-audio-recorder-demo
+// https://stackoverflow.com/questions/31211359/refused-to-load-the-script-because-it-violates-the-following-content-security-po - worker not loading on other tabs
 
 class ExtensionBase extends React.Component{
     
@@ -22,6 +26,7 @@ class ExtensionBase extends React.Component{
         speechToTextObj: null,
         test: null,
         watsonSessionId: null,
+        isUserAuthenticated: false,
         watsonAssistantResponse: "",
         errorText: "",
         playlistLink: ""
@@ -34,9 +39,27 @@ class ExtensionBase extends React.Component{
       this.createPlaylist = this.createPlaylist.bind(this);      
       this.speechToTextConversion = this.speechToTextConversion.bind(this);
       this.triggerSpotifyAuth = this.triggerSpotifyAuth.bind(this);
+
       localStorage.setItem('spotifyAccessToken', null);
     }
 
+    componentDidMount() {
+      chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+        if (msg.action === 'access_token') {
+            localStorage.setItem("spotifyAccessToken", msg.token);
+            this.setState({isUserAuthenticated: true})
+        }
+      })
+    }
+
+    componentDidUpdate() {
+      console.log("here")
+      if(localStorage.getItem('spotifyAccessToken') !== "null" && !this.state.isUserAuthenticated) {
+        console.log(localStorage.getItem('spotifyAccessToken'))
+        this.setState({isUserAuthenticated: true});
+      }
+    }
+ 
   async setAudioGlobalStore() {
     const audio = await navigator.mediaDevices.getUserMedia({
       audio: true,
@@ -200,6 +223,8 @@ class ExtensionBase extends React.Component{
 
     let data = {input: {text: userSpokenText}}
 
+    curSessionId = (curSessionId ? curSessionId : this.state.watsonSessionId)
+
     await fetch(`https://gateway.watsonplatform.net/assistant/api/v2/assistants/dbdb7d30-0fb5-4b86-8290-22a90b7b467b/sessions/${curSessionId}/message?version=2019-02-02`, {
       method: "POST",
       headers: {
@@ -220,6 +245,10 @@ class ExtensionBase extends React.Component{
   analyzeAssistantResponse(assistantResponse) {
     let currentIntent = ""
     assistantResponse = assistantResponse.output
+    if(!assistantResponse) {
+      this.setState({errorText: "Something went wrong. Please try again."})
+      return;
+    }
     if (assistantResponse.actions)
     {
       // analyzing actions
@@ -269,7 +298,7 @@ class ExtensionBase extends React.Component{
               s.createPlaylist(userID, playlistBody).then((playlistData) => {
                   console.log(playlistData);
                   var playlistID = playlistData.id;
-                  this.addSongsArtist(name, 10, playlistID);
+                  SpotifyHelper.addSongsArtist(name, 10, playlistID, s);
                   this.setState({playlistLink : playlistData.external_urls.spotify});
               });
           });
@@ -278,22 +307,24 @@ class ExtensionBase extends React.Component{
       }
   }
 
-  addSongsArtist(name, numberOfSongs, playlistID) {
-    var token = localStorage.getItem("spotifyAccessToken");
-    var s = new window.SpotifyWebApi();
-    s.setAccessToken(token);
-    var query = "artist:" + name;
-    var searchType = ["track"];
-    var searchBody = { "limit": numberOfSongs.toString() };
-    s.search(query, searchType, searchBody).then((results) => {
-        console.log(results);
-        var songArray = [];
-        for (var i = 0; i < 9; i++) {
-            songArray[i] = results.tracks.items[i].uri;
-        }
-        s.addTracksToPlaylist(playlistID, songArray);
-    });
-  }
+
+
+  // addSongsArtist(name, numberOfSongs, playlistID) {
+  //   var token = localStorage.getItem("spotifyAccessToken");
+  //   var s = new window.SpotifyWebApi();
+  //   s.setAccessToken(token);
+  //   var query = "artist:" + name;
+  //   var searchType = ["track"];
+  //   var searchBody = { "limit": numberOfSongs.toString() };
+  //   s.search(query, searchType, searchBody).then((results) => {
+  //       console.log(results);
+  //       var songArray = [];
+  //       for (var i = 0; i < 9; i++) {
+  //           songArray[i] = results.tracks.items[i].uri;
+  //       }
+  //       s.addTracksToPlaylist(playlistID, songArray);
+  //   });
+  // }
 
     render() {
       return (
@@ -306,16 +337,22 @@ class ExtensionBase extends React.Component{
                   return (
                       <div className={'my-extension'}>
                         <h1>Music Buddy v0.0.1</h1>
-                        <button className="record-button" onClick={()=>this.toggleMicrophone(document)}>
-                              {this.state.audio ? 'Stop recording' : 'Start Recording'}
-                        </button>
-                        <button className="login-button" onClick={this.triggerSpotifyAuth}>
-                            {this.state.test ? 'Spotify Errored Out' : 'Login With Spotify'}
-                        </button>
-                        {this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}
-                        <div id="recordingsList"></div>
-                        <p>{this.state.watsonAssistantResponse}</p>
-                        <p>{this.state.playlistLink}</p>
+                        {!this.state.isUserAuthenticated ?
+                          <button className="login-button" onClick={this.triggerSpotifyAuth}>
+                                {this.state.test ? 'Spotify Errored Out' : 'Login With Spotify'}
+                          </button>                          
+                          :
+                          <div>
+                            <button className="record-button" onClick={()=>this.toggleMicrophone(document)}>
+                                {this.state.audio ? 'Stop recording' : 'Start Recording'}
+                            </button>
+                            <span>{this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}</span>
+                            <div id="recordingsList"></div>
+                            <p>{this.state.watsonAssistantResponse}</p>
+                            <a href={this.state.playlistLink} target="_blank">{this.state.playlistLink}</a>
+                          </div>
+                        }
+
                         <p style={{color: "red"}}>{this.state.errorText}</p>
                       </div>
                   )
@@ -348,12 +385,6 @@ function toggle(){
      app.style.display = "none";
    }
 }
-
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.action === 'access_token') {
-        localStorage.setItem("spotifyAccessToken", msg.token);
-    }
-});
 
 document.body.appendChild(app);
 ReactDOM.render(<ExtensionBase />, app);
