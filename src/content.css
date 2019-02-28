@@ -5,3 +5,23 @@
  .my-extension h1 {
      color: #000;
  }
+
+ .input-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+ }
+ .query-input {
+    width: 300px;
+    border: none;
+    border-bottom: 1px solid grey;
+    padding-bottom: 5px;
+    font-size: 16px;
+ }
+ .query-input:focus {
+    outline: none;
+ }
+
+ .microphone-icon {
+    cursor: pointer;
+ }

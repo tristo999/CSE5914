@@ -29,7 +29,8 @@ class ExtensionBase extends React.Component{
         isUserAuthenticated: false,
         watsonAssistantResponse: "",
         errorText: "",
-        playlistLink: ""
+        playlistLink: "",
+        inputQuery: ""
       };
       this.list = React.createRef();
       this.toggleMicrophone = this.toggleMicrophone.bind(this);
@@ -39,6 +40,8 @@ class ExtensionBase extends React.Component{
       this.createPlaylist = this.createPlaylist.bind(this);      
       this.speechToTextConversion = this.speechToTextConversion.bind(this);
       this.triggerSpotifyAuth = this.triggerSpotifyAuth.bind(this);
+      this.handleInputQueryChange = this.handleInputQueryChange.bind(this);
+      this.handleInputQuerySubmit = this.handleInputQuerySubmit.bind(this);
 
       localStorage.setItem('spotifyAccessToken', null);
     }
@@ -58,6 +61,16 @@ class ExtensionBase extends React.Component{
         console.log(localStorage.getItem('spotifyAccessToken'))
         this.setState({isUserAuthenticated: true});
       }
+    }
+
+    handleInputQueryChange(e) {
+      this.setState({inputQuery: e.target.value});
+    }
+
+    handleInputQuerySubmit(e) {
+      e.preventDefault();
+      console.log(this.state.inputQuery)
+      this.sendDataToWatsonAssistant()
     }
  
   async setAudioGlobalStore() {
@@ -152,25 +165,25 @@ class ExtensionBase extends React.Component{
 
   createDownloadLink(blob,encoding) {
 	
-    var url = URL.createObjectURL(blob);
-    var au = document.createElement('audio');
-    var li = document.createElement('li');
-    var link = document.createElement('a');
+    // var url = URL.createObjectURL(blob);
+    // var au = document.createElement('audio');
+    // var li = document.createElement('li');
+    // var link = document.createElement('a');
   
-    //add controls to the <audio> element
-    au.controls = true;
-    au.src = url;
+    // //add controls to the <audio> element
+    // au.controls = true;
+    // au.src = url;
   
-    //link the a element to the blob
-    link.href = url;
-    link.download = new Date().toISOString() + '.'+encoding;
-    link.innerHTML = link.download;
+    // //link the a element to the blob
+    // link.href = url;
+    // link.download = new Date().toISOString() + '.'+encoding;
+    // link.innerHTML = link.download;
   
-    //add the new audio and a elements to the li element
-    li.appendChild(au);
-    li.appendChild(link);
+    // //add the new audio and a elements to the li element
+    // li.appendChild(au);
+    // li.appendChild(link);
 
-    this.state.iFrameDoc.getElementById("recordingsList").innerHTML = li.innerHTML;
+    // this.state.iFrameDoc.getElementById("recordingsList").innerHTML = li.innerHTML;
 
     this.speechToTextConversion(blob);
   }
@@ -197,12 +210,29 @@ class ExtensionBase extends React.Component{
 
   async sendDataToWatsonAssistant() {
     let analyzedSoundObject = this.state.speechToTextObj;
-    console.log(analyzedSoundObject);
-    if(analyzedSoundObject.results.length < 1) {
-      this.setState({errorText: "Unrecognized voice input, please try again"})
+    let userInputText = "";
+    
+    if(analyzedSoundObject){
+      if(analyzedSoundObject.results.length > 1) {
+        userInputText = analyzedSoundObject.results[0].alternatives[0].transcript;
+      }
+    } else if (this.state.inputQuery.length > 1) {
+      userInputText = this.state.inputQuery;
+    }
+    else {
+      this.setState({errorText: "Unrecognized input, please try again"})
       return;
     }
-    let userSpokenText = analyzedSoundObject.results[0].alternatives[0].transcript
+
+    // if(analyzedSoundObject.results.length < 1 && this.state.inputQuery.length < 1) {
+    //   this.setState({errorText: "Unrecognized input, please try again"})
+    //   return;
+    // } else if(analyzedSoundObject.results.length > 0) {
+    //   userInputText = analyzedSoundObject.results[0].alternatives[0].transcript;
+    // } else {
+    //   userInputText = this.state.inputQuery;
+    // }
+
     let curSessionId = this.state.watsonSessionId;
 
     await fetch("https://gateway.watsonplatform.net/assistant/api/v2/assistants/dbdb7d30-0fb5-4b86-8290-22a90b7b467b/sessions?version=2019-02-02", {
@@ -221,7 +251,7 @@ class ExtensionBase extends React.Component{
         console.log(error)
     });
 
-    let data = {input: {text: userSpokenText}}
+    let data = {input: {text: userInputText}}
 
     curSessionId = (curSessionId ? curSessionId : this.state.watsonSessionId)
 
@@ -343,11 +373,22 @@ class ExtensionBase extends React.Component{
                           </button>                          
                           :
                           <div>
-                            <button className="record-button" onClick={()=>this.toggleMicrophone(document)}>
-                                {this.state.audio ? 'Stop recording' : 'Start Recording'}
-                            </button>
+                            <div className={"input-container"}>
+                              <form onSubmit={this.handleInputQuerySubmit}>      
+                                <input className={"query-input"} type="text" placeholder={"What Can I Help You With?"} value={this.state.inputQuery} onChange={this.handleInputQueryChange}/>
+                              </form>
+                              {this.state.audio ? 
+                                  <span className={"microphone-icon"} onClick={()=>this.toggleMicrophone(document)}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1.2-9.1c0-.66.54-1.2 1.2-1.2.66 0 1.2.54 1.2 1.2l-.01 6.2c0 .66-.53 1.2-1.19 1.2-.66 0-1.2-.54-1.2-1.2V4.9zm6.5 6.1c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/><path d="M0 0h24v24H0z" fill="none"/></svg>
+                                  </span>
+                                  :
+                                  <span className={"microphone-icon"} onClick={()=>this.toggleMicrophone(document)}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/><path d="M0 0h24v24H0z" fill="none"/></svg>
+                                  </span>
+                                }
+                            </div>
                             <span>{this.state.audio ? <AudioAnalyser audio={this.state.audio} /> : ''}</span>
-                            <div id="recordingsList"></div>
+                            {/* <div id="recordingsList"></div> */}
                             <p>{this.state.watsonAssistantResponse}</p>
                             <a href={this.state.playlistLink} target="_blank">{this.state.playlistLink}</a>
                           </div>
