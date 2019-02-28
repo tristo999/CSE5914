@@ -55,6 +55,7 @@ class ExtensionBase extends React.Component{
     componentDidUpdate() {
       console.log("here")
       if(localStorage.getItem('spotifyAccessToken') !== "null" && !this.state.isUserAuthenticated) {
+        console.log("there")
         console.log(localStorage.getItem('spotifyAccessToken'))
         this.setState({isUserAuthenticated: true});
       }
@@ -258,24 +259,25 @@ class ExtensionBase extends React.Component{
         var track_name = "Undefined";
         var album_name = "Undefined";
         var numSongs = 10;
+        console.log(assistantResponse.entities)
         for (j = 0; j < assistantResponse.entities.length; j ++)
         {
           if (assistantResponse.entities[j].entity === "artist")
           {
             artist_name = assistantResponse.entities[j].value
-            console.log(artist_name);
+            console.log("Artist is: " + artist_name);
           }
           if (assistantResponse.entities[j].entity === "track")
           {
             track_name = assistantResponse.entities[j].value
-            console.log(track_name);
+            console.log("Track is: " + track_name);
           }
           if (assistantResponse.entities[j].entity === "album")
           {
             album_name = assistantResponse.entities[j].value
-            console.log(album_name);
+            console.log("Album is: " + album_name);
           }
-          if (assistantResponse.entities[j].entity === "numTracks")
+          if (assistantResponse.entities[j].entity === "num_Tracks")
           {
             numSongs = assistantResponse.entities[j].value
             console.log(numSongs);
@@ -301,7 +303,7 @@ class ExtensionBase extends React.Component{
   triggerSpotifyAuth() {
     var event = document.createEvent('Event');
     event.initEvent('hello');
-    document.dispatchEvent(event);
+    document.dispatchEvent(event); 
     console.log("Opening AUTH");
   }
 
@@ -318,6 +320,7 @@ class ExtensionBase extends React.Component{
                   console.log("Creating Playlist");
                   console.log(playlistData);
                   var playlistID = playlistData.id;
+                  console.log("Where are we breaking?")
                   SpotifyHelper.addSongs(artist,track, album, numSongs, playlistID, s);
                   this.setState({playlistLink : playlistData.external_urls.spotify});
               });
@@ -326,6 +329,7 @@ class ExtensionBase extends React.Component{
 
       }
   }
+
 
 
 
