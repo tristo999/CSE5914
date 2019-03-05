@@ -28,9 +28,10 @@ import { debug } from "util";
     console.log("Search: " + queue);
     var searchType = ["track"];
     var searchBody = { "limit": num_Songs.toString() };
+    console.log(searchBody);
     spotifyInstance.search(queue, searchType, searchBody).then((results : any) => {
         var songArray = [];
-        for (var i = 0; i < results.tracks.items.length - 1; i++) {
+        for (var i = 0; i < results.tracks.items.length; i++) {
             songArray[i] = results.tracks.items[i].uri;
         }
         spotifyInstance.addTracksToPlaylist(playlistID, songArray);

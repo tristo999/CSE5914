@@ -10,7 +10,7 @@ import "./content.css";
 // const SpotifyHelper = require("./util/spotify/spotify-helpers");
 
 // WebAudioRecorder code based on https://github.com/addpipe/simple-web-audio-recorder-demo
-// https://stackoverflow.com/questions/31211359/refused-to-load-the-script-because-it-violates-the-following-content-security-po - worker not loading on other tabs
+// https://stackoverflow.com/questions/31211359/refused-to-load-the-script-because-it-violates-the-following-content-sec  ty-po - worker not loading on other tabs
 
 class ExtensionBase extends React.Component{
     
@@ -307,7 +307,7 @@ class ExtensionBase extends React.Component{
             album_name = assistantResponse.entities[j].value
             console.log("Album is: " + album_name);
           }
-          if (assistantResponse.entities[j].entity === "num_Tracks")
+          if (assistantResponse.entities[j].entity === "num_tracks")
           {
             numSongs = assistantResponse.entities[j].value
             console.log(numSongs);
@@ -350,7 +350,6 @@ class ExtensionBase extends React.Component{
                   console.log("Creating Playlist");
                   console.log(playlistData);
                   var playlistID = playlistData.id;
-                  console.log("Where are we breaking?")
                   SpotifyHelper.addSongs(artist,track, album, numSongs, playlistID, s);
                   this.setState({playlistLink : playlistData.external_urls.spotify});
               });
@@ -360,7 +359,28 @@ class ExtensionBase extends React.Component{
       }
   }
 
-
+  async createPlaylistBridge(source, dest) {
+    source = "Metallica";
+    dest = "Kanye West";
+    var skipList = [];
+    var url = new URL("http://frog.playlistmachinery.com:4682/frog/path");
+    var params = {src:source, dest:dest, skips:skipList};
+    url.search = new URLSearchParams(params);
+    await fetch((url), {
+      method: "GET",
+    }).then((response) => {
+      response.json().then((data) => {
+        console.log(data);
+        if (data.status == 'ok' && data.path.length >= 2) {
+          console.log("Did it!");
+          var msg = 'Found a path from ' + data.path[0].name + ' to ' + data.path[data.path.length -1].name + ' in ' 
+            + data.path.length + ' songs. '  
+          console.log(msg);
+        }
+      });
+    });
+  }
+  
 
 
     render() {
@@ -381,6 +401,7 @@ class ExtensionBase extends React.Component{
                           :
                           <div>
                             <div className={"input-container"}>
+                            <button className="TestBridge" onClick={this.createPlaylistBridge}></button>
                               <form onSubmit={this.handleInputQuerySubmit}>      
                                 <input className={"query-input"} type="text" placeholder={"What Can I Help You With?"} value={this.state.inputQuery} onChange={this.handleInputQueryChange}/>
                               </form>
