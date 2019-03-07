@@ -11,7 +11,7 @@ import "./content.css";
 // const SpotifyHelper = require("./util/spotify/spotify-helpers");
 
 // WebAudioRecorder code based on https://github.com/addpipe/simple-web-audio-recorder-demo
-// https://stackoverflow.com/questions/31211359/refused-to-load-the-script-because-it-violates-the-following-content-security-po - worker not loading on other tabs
+// https://stackoverflow.com/questions/31211359/refused-to-load-the-script-because-it-violates-the-following-content-sec  ty-po - worker not loading on other tabs
 
 class ExtensionBase extends React.Component{
     
@@ -59,6 +59,7 @@ class ExtensionBase extends React.Component{
 
     componentDidUpdate() {
       if(localStorage.getItem('spotifyAccessToken') !== "null" && !this.state.isUserAuthenticated) {
+        console.log("there")
         console.log(localStorage.getItem('spotifyAccessToken'))
         this.setState({isUserAuthenticated: true});
       }
@@ -262,14 +263,46 @@ class ExtensionBase extends React.Component{
       if (assistantResponse.actions[0].name === "make_playlist") {
         var j;
         var artist_name = "Undefined";
+        var track_name = "Undefined";
+        var album_name = "Undefined";
+        var numSongs = 10;
+        console.log(assistantResponse.entities)
         for (j = 0; j < assistantResponse.entities.length; j ++)
         {
           if (assistantResponse.entities[j].entity === "artist")
           {
             artist_name = assistantResponse.entities[j].value
-            this.createPlaylist(artist_name);
+            console.log("Artist is: " + artist_name);
+          }
+          if (assistantResponse.entities[j].entity === "track")
+          {
+            track_name = assistantResponse.entities[j].value
+            console.log("Track is: " + track_name);
+          }
+          if (assistantResponse.entities[j].entity === "album")
+          {
+            album_name = assistantResponse.entities[j].value
+            console.log("Album is: " + album_name);
+          }
+          if (assistantResponse.entities[j].entity === "num_tracks")
+          {
+            numSongs = assistantResponse.entities[j].value
+            console.log(numSongs);
           }
         }
+        this.createPlaylist(artist_name,track_name,album_name,numSongs);
+      } else if (assistantResponse.actions[0].name === "make_bridge_playlist") {
+        var artists = {}
+        var i = 0;
+        for (j = 0; j < assistantResponse.entities.length; j ++)
+        {
+          if (assistantResponse.entities[j].entity === "artist")
+          {
+            artists[i] = assistantResponse.entities[j].value
+            i++
+          }
+        }
+        this.createPlaylistBridge(artists[0], artists[1])
       }
     }
 
@@ -336,11 +369,11 @@ class ExtensionBase extends React.Component{
   triggerSpotifyAuth() {
     var event = document.createEvent('Event');
     event.initEvent('hello');
-    document.dispatchEvent(event);
+    document.dispatchEvent(event); 
     console.log("Opening AUTH");
   }
 
-  createPlaylist(name) {
+  createPlaylist(artist, track, album, numSongs) {
       var token = localStorage.getItem("spotifyAccessToken");
       if (token) {
           var s = new window.SpotifyWebApi();
@@ -348,11 +381,12 @@ class ExtensionBase extends React.Component{
           s.getMe().then((value) => {
               var userID = value.id;
               console.log(userID);
-              var playlistBody = { "name": name };
+              var playlistBody = { "name": artist };
               s.createPlaylist(userID, playlistBody).then((playlistData) => {
+                  console.log("Creating Playlist");
                   console.log(playlistData);
                   var playlistID = playlistData.id;
-                  SpotifyHelper.addSongsArtist(name, 10, playlistID, s);
+                  SpotifyHelper.addSongs(artist,track, album, numSongs, playlistID, s);
                   this.setState({playlistLink : playlistData.external_urls.spotify});
               });
           });
@@ -361,6 +395,47 @@ class ExtensionBase extends React.Component{
       }
   }
 
+  async createPlaylistBridge(source, dest) {
+    var token = localStorage.getItem("spotifyAccessToken");
+    if (token) {
+      var s = new window.SpotifyWebApi();
+      s.setAccessToken(token);
+      s.getMe().then(async (value) => {
+          var userID = value.id;
+          console.log(userID);
+          var playlistBody = { "name": source + " -> " + dest};
+          s.createPlaylist(userID, playlistBody).then(async (playlistData) => {
+            console.log("Creating Bridge Playlist");
+            var playlistID = playlistData.id;
+            var skipList = [];
+            var url = new URL("http://frog.playlistmachinery.com:4682/frog/path");
+            var params = {src:source, dest:dest, skips:skipList};
+            url.search = new URLSearchParams(params);
+            await fetch((url), {
+              method: "GET",
+            }).then((response) => {
+              response.json().then(async (data) => {
+                console.log(data);
+                if (data.status == 'ok' && data.path.length >= 2) {
+                  var msg = 'Found a path from ' + data.path[0].name + ' to ' + data.path[data.path.length -1].name + ' in ' 
+                    + data.path.length + ' songs. '  
+                    console.log(msg)
+                    var songArray = [];
+                    for (var i = 0; i < data.path.length; i++) {
+                      await s.getTrack(data.path[i].tracks[0].id).then((trackData) => {
+                        songArray[i] = trackData.uri
+                      });
+                    }
+                    s.addTracksToPlaylist(playlistID, songArray);
+                    this.setState({playlistLink : playlistData.external_urls.spotify});
+                }
+              });
+            });
+        });
+      });
+    }
+  }
+  
   createEmbedLink(playlistLink) {
     var firstSubstring = playlistLink.substring(0,25)
     var secondSubstring = playlistLink.substring(25);
@@ -368,23 +443,6 @@ class ExtensionBase extends React.Component{
   }
 
 
-
-  // addSongsArtist(name, numberOfSongs, playlistID) {
-  //   var token = localStorage.getItem("spotifyAccessToken");
-  //   var s = new window.SpotifyWebApi();
-  //   s.setAccessToken(token);
-  //   var query = "artist:" + name;
-  //   var searchType = ["track"];
-  //   var searchBody = { "limit": numberOfSongs.toString() };
-  //   s.search(query, searchType, searchBody).then((results) => {
-  //       console.log(results);
-  //       var songArray = [];
-  //       for (var i = 0; i < 9; i++) {
-  //           songArray[i] = results.tracks.items[i].uri;
-  //       }
-  //       s.addTracksToPlaylist(playlistID, songArray);
-  //   });
-  // }
 
     render() {
       let spotifyIconContainerStyle = {};
