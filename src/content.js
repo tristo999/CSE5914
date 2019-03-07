@@ -314,6 +314,18 @@ class ExtensionBase extends React.Component{
           }
         }
         this.createPlaylist(artist_name,track_name,album_name,numSongs);
+      } else if (assistantResponse.actions[0].name === "make_bridge_playlist") {
+        var artists = {}
+        var i = 0;
+        for (j = 0; j < assistantResponse.entities.length; j ++)
+        {
+          if (assistantResponse.entities[j].entity === "artist")
+          {
+            artists[i] = assistantResponse.entities[j].value
+            i++
+          }
+        }
+        this.createPlaylistBridge(artists[0], artists[1])
       }
     }
 
@@ -360,25 +372,44 @@ class ExtensionBase extends React.Component{
   }
 
   async createPlaylistBridge(source, dest) {
-    source = "Metallica";
-    dest = "Kanye West";
-    var skipList = [];
-    var url = new URL("http://frog.playlistmachinery.com:4682/frog/path");
-    var params = {src:source, dest:dest, skips:skipList};
-    url.search = new URLSearchParams(params);
-    await fetch((url), {
-      method: "GET",
-    }).then((response) => {
-      response.json().then((data) => {
-        console.log(data);
-        if (data.status == 'ok' && data.path.length >= 2) {
-          console.log("Did it!");
-          var msg = 'Found a path from ' + data.path[0].name + ' to ' + data.path[data.path.length -1].name + ' in ' 
-            + data.path.length + ' songs. '  
-          console.log(msg);
-        }
+    var token = localStorage.getItem("spotifyAccessToken");
+    if (token) {
+      var s = new window.SpotifyWebApi();
+      s.setAccessToken(token);
+      s.getMe().then(async (value) => {
+          var userID = value.id;
+          console.log(userID);
+          var playlistBody = { "name": source + " -> " + dest};
+          s.createPlaylist(userID, playlistBody).then(async (playlistData) => {
+            console.log("Creating Bridge Playlist");
+            var playlistID = playlistData.id;
+            var skipList = [];
+            var url = new URL("http://frog.playlistmachinery.com:4682/frog/path");
+            var params = {src:source, dest:dest, skips:skipList};
+            url.search = new URLSearchParams(params);
+            await fetch((url), {
+              method: "GET",
+            }).then((response) => {
+              response.json().then(async (data) => {
+                console.log(data);
+                if (data.status == 'ok' && data.path.length >= 2) {
+                  var msg = 'Found a path from ' + data.path[0].name + ' to ' + data.path[data.path.length -1].name + ' in ' 
+                    + data.path.length + ' songs. '  
+                    console.log(msg)
+                    var songArray = [];
+                    for (var i = 0; i < data.path.length; i++) {
+                      await s.getTrack(data.path[i].tracks[0].id).then((trackData) => {
+                        songArray[i] = trackData.uri
+                      });
+                    }
+                    s.addTracksToPlaylist(playlistID, songArray);
+                    this.setState({playlistLink : playlistData.external_urls.spotify});
+                }
+              });
+            });
+        });
       });
-    });
+    }
   }
   
 
@@ -401,7 +432,6 @@ class ExtensionBase extends React.Component{
                           :
                           <div>
                             <div className={"input-container"}>
-                            <button className="TestBridge" onClick={this.createPlaylistBridge}></button>
                               <form onSubmit={this.handleInputQuerySubmit}>      
                                 <input className={"query-input"} type="text" placeholder={"What Can I Help You With?"} value={this.state.inputQuery} onChange={this.handleInputQueryChange}/>
                               </form>
