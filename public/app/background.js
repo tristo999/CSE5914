@@ -7,7 +7,8 @@ chrome.browserAction.onClicked.addListener(function(tab) {
           chrome.tabs.sendMessage(activeTab.id, 
               {"message": "clicked_browser_action"}
           );
-    });
+	});
+	return Promise.resolve("Dummy response to keep the console quiet");
 });
 
 chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
@@ -38,6 +39,7 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
 			console.log("Error logging into Spotify")
 		}
 	});
+	return Promise.resolve("Dummy response to keep the console quiet");
 });
 
 
