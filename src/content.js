@@ -43,6 +43,8 @@ class ExtensionBase extends React.Component{
       this.handleInputQueryChange = this.handleInputQueryChange.bind(this);
       this.handleInputQuerySubmit = this.handleInputQuerySubmit.bind(this);
       this.createEmbedLink = this.createEmbedLink.bind(this);
+      this.createPlaylist = this.createPlaylist.bind(this);
+      this.createPlaylistBridge = this.createPlaylistBridge.bind(this);
 
       localStorage.setItem('spotifyAccessToken', null);
     }
@@ -54,6 +56,7 @@ class ExtensionBase extends React.Component{
             this.setState({isUserAuthenticated: true})
         }
       })
+      
     }
 
     componentDidUpdate() {
@@ -369,6 +372,7 @@ class ExtensionBase extends React.Component{
   }
 
   createPlaylist(artist, track, album, numSongs) {
+<<<<<<< HEAD
       var token = localStorage.getItem("spotifyAccessToken");
       if (token) {
           var s = new window.SpotifyWebApi();
@@ -384,9 +388,31 @@ class ExtensionBase extends React.Component{
                   this.setState({playlistLink : playlistData.external_urls.spotify});
               });
           });
+=======
+      if (numSongs >= 50) {
+        this.setState({watsonAssistantResponse : "Please limit number of songs to under 50", errorText:""});
+        console.log("Please limit number of songs to under 50")
+>>>>>>> 0e1d7218c197adf264ecd2ac381fb9900153a4fa
       } else {
-
+        var token = localStorage.getItem("spotifyAccessToken");
+        if (token) {
+            var s = new window.SpotifyWebApi();
+            s.setAccessToken(token);
+            s.getMe().then((value) => {
+                var userID = value.id;
+                console.log(userID);
+                var playlistBody = { "name": artist };
+                s.createPlaylist(userID, playlistBody).then((playlistData) => {
+                    console.log("Creating Playlist");
+                    console.log(playlistData);
+                    var playlistID = playlistData.id;
+                    SpotifyHelper.addSongs(artist,track, album, numSongs, playlistID, s);
+                    this.setState({playlistLink : playlistData.external_urls.spotify});
+                });
+            });
+        } else {
       }
+    }
   }
 
   async createPlaylistBridge(source, dest) {
@@ -422,6 +448,10 @@ class ExtensionBase extends React.Component{
                     }
                     s.addTracksToPlaylist(playlistID, songArray);
                     this.setState({playlistLink : playlistData.external_urls.spotify});
+                } else if (data.status == 'ok' && data.path.length == 1) {
+                    this.setState({watsonAssistantResponse : "Cannot Bridge Artist to Self"});
+                } else if (data.status != 'ok') {
+                  this.setState({watsonAssistantResponse : "Unable to Bridge Playlist, Try Again"});
                 }
               });
             });
@@ -536,6 +566,7 @@ chrome.runtime.onMessage.addListener(
         toggle();
       }
    }
+   
 );
 
 function toggle(){
