@@ -37,7 +37,6 @@ class ExtensionBase extends React.Component{
       this.toggleMicrophone = this.toggleMicrophone.bind(this);
       this.startRecording = this.startRecording.bind(this);
       this.stopRecording = this.stopRecording.bind(this);
-      this.createDownloadLink = this.createDownloadLink.bind(this);
       this.createPlaylist = this.createPlaylist.bind(this);      
       this.speechToTextConversion = this.speechToTextConversion.bind(this);
       this.triggerSpotifyAuth = this.triggerSpotifyAuth.bind(this);
@@ -71,9 +70,11 @@ class ExtensionBase extends React.Component{
 
     handleInputQuerySubmit(e) {
       e.preventDefault();
+      let inputText = this.state.inputQuery.toLocaleLowerCase();
       console.log(this.state.inputQuery)
-      this.sendDataToWatsonAssistant(this.state.inputQuery.toLocaleLowerCase())
-      this.setState({errorText: "", watsonAssistantResponse: "", inputQuery: "", playlistLink: null })
+      this.setState({errorText: "", watsonAssistantResponse: "", inputQuery: "", playlistLink: null, speechToTextObj: null } ,() => {
+        this.sendDataToWatsonAssistant(inputText);
+      })
     }
  
   async setAudioGlobalStore() {
@@ -112,7 +113,7 @@ class ExtensionBase extends React.Component{
   
       recorder.onComplete = (recorder, blob) => { 
         console.log("Encoding complete");
-        this.createDownloadLink(blob,recorder.encoding);
+        this.speechToTextConversion(blob);
       }
   
       recorder.setOptions({
@@ -163,11 +164,6 @@ class ExtensionBase extends React.Component{
       this.startRecording();
     }
     this.setState({iFrameDoc})
-  }
-
-
-  createDownloadLink(blob,encoding) {
-    this.speechToTextConversion(blob);
   }
 
   // WATSON FLOW
@@ -231,7 +227,6 @@ class ExtensionBase extends React.Component{
     console.log(userInputText)
     console.log(data);
     curSessionId = (curSessionId ? curSessionId : this.state.watsonSessionId)
-    console.log(curSessionId)
 
     await fetch(`https://gateway.watsonplatform.net/assistant/api/v2/assistants/dbdb7d30-0fb5-4b86-8290-22a90b7b467b/sessions/${curSessionId}/message?version=2019-02-02`, {
       method: "POST",
@@ -380,7 +375,6 @@ class ExtensionBase extends React.Component{
           s.setAccessToken(token);
           s.getMe().then((value) => {
               var userID = value.id;
-              console.log(userID);
               var playlistBody = { "name": artist };
               s.createPlaylist(userID, playlistBody).then((playlistData) => {
                   console.log("Creating Playlist");

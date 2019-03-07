@@ -1,7 +1,8 @@
 import { debug } from "util";
+import * as WordToNumber from "../wordToNumber";
 
   // SPOTIFY FLOW  
-  export function addSongs(artist: string, track: string, album:string, num_Songs: number, playlistID: any, spotifyInstance: any) {
+  export function addSongs(artist: string, track: string, album:string, num_Songs: any, playlistID: any, spotifyInstance: any) {
     //var token = localStorage.getItem("spotifyAccessToken");
     //var s = new window.SpotifyWebApi();
     // s.setAccessToken(token);
@@ -27,7 +28,12 @@ import { debug } from "util";
     }
     console.log("Search: " + queue);
     var searchType = ["track"];
-    var searchBody = { "limit": num_Songs.toString() };
+    console.log(num_Songs)
+    var limit = num_Songs;
+    if(isNaN(parseInt(num_Songs))) {
+      limit = WordToNumber.text2num(num_Songs);
+    }
+    var searchBody = { "limit": limit };
     console.log(searchBody);
     spotifyInstance.search(queue, searchType, searchBody).then((results : any) => {
         var songArray = [];
