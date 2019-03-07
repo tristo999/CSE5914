@@ -372,7 +372,6 @@ class ExtensionBase extends React.Component{
   }
 
   createPlaylist(artist, track, album, numSongs) {
-<<<<<<< HEAD
       var token = localStorage.getItem("spotifyAccessToken");
       if (token) {
           var s = new window.SpotifyWebApi();
@@ -388,11 +387,9 @@ class ExtensionBase extends React.Component{
                   this.setState({playlistLink : playlistData.external_urls.spotify});
               });
           });
-=======
       if (numSongs >= 50) {
         this.setState({watsonAssistantResponse : "Please limit number of songs to under 50", errorText:""});
         console.log("Please limit number of songs to under 50")
->>>>>>> 0e1d7218c197adf264ecd2ac381fb9900153a4fa
       } else {
         var token = localStorage.getItem("spotifyAccessToken");
         if (token) {
