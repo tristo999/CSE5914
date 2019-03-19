@@ -49,6 +49,12 @@ class ExtensionBase extends React.Component{
       localStorage.setItem('spotifyAccessToken', null);
     }
 
+    sum(a, b) {
+      return a + b;
+    }
+    module.exports = sum;
+
+
     componentDidMount() {
       chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (msg.action === 'access_token') {
@@ -408,6 +414,8 @@ class ExtensionBase extends React.Component{
                 });
             });
         } else {
+
+        }
       }
     }
   }
@@ -455,10 +463,9 @@ class ExtensionBase extends React.Component{
         });
       });
     }
-  }
   
   createEmbedLink(playlistLink) {
-    var firstSubstring = playlistLink.substring(0,25)
+    var firstSubstring = playlistLink.substring(0,25);
     var secondSubstring = playlistLink.substring(25);
     return firstSubstring + "embed/" + secondSubstring;
   }
@@ -549,6 +556,7 @@ class ExtensionBase extends React.Component{
         </Frame>
       )
     }
+    
 }
 
 const app = document.createElement('div');
