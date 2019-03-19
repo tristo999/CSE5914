@@ -49,12 +49,6 @@ class ExtensionBase extends React.Component{
       localStorage.setItem('spotifyAccessToken', null);
     }
 
-    sum(a, b) {
-      return a + b;
-    }
-    module.exports = sum;
-
-
     componentDidMount() {
       chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (msg.action === 'access_token') {
@@ -413,9 +407,7 @@ class ExtensionBase extends React.Component{
                     this.setState({playlistLink : playlistData.external_urls.spotify});
                 });
             });
-        } else {
-
-        }
+        } else {}
       }
     }
   }
