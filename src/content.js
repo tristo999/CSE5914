@@ -407,7 +407,7 @@ class ExtensionBase extends React.Component{
                     this.setState({playlistLink : playlistData.external_urls.spotify});
                 });
             });
-        } else {
+        } else {}
       }
     }
   }
