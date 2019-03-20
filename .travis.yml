@@ -4,8 +4,6 @@ node_js:
 cache:
   directories:
     - node_modules
-    - src
-    - scripts
 script:
-  - yarn build
+  - CI=false yarn build
   - yarn test
