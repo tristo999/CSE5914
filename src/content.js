@@ -455,6 +455,7 @@ class ExtensionBase extends React.Component{
         });
       });
     }
+  }
   
   createEmbedLink(playlistLink) {
     var firstSubstring = playlistLink.substring(0,25);
