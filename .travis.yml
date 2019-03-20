@@ -7,5 +7,5 @@ cache:
     - src
     - scripts
 script:
-  - npm run build
-  - npm test
+  - yarn build
+  - yarn test
