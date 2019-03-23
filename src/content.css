@@ -58,6 +58,7 @@
  .watson-response-text {
     color: #FFF;
     margin: 0;
+    white-space: pre-line;
     padding: 10px 15px;
     background-color: rgba(0, 255, 67, 0.7);
     border-radius: 20px;

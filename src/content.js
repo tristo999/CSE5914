@@ -31,8 +31,10 @@ class ExtensionBase extends React.Component{
         watsonAssistantResponse: "",
         errorText: "",
         playlistLink: "",
-        inputQuery: ""
+        inputQuery: "",
+        // bio: ""
       };
+      this.wikipedia = 
       this.list = React.createRef();
       this.toggleMicrophone = this.toggleMicrophone.bind(this);
       this.startRecording = this.startRecording.bind(this);
@@ -257,6 +259,7 @@ class ExtensionBase extends React.Component{
     }
     if (assistantResponse.actions)
     {
+      console.log(assistantResponse);
       // analyzing actions
       if (assistantResponse.actions[0].name === "make_playlist") {
         var j;
@@ -301,6 +304,18 @@ class ExtensionBase extends React.Component{
           }
         }
         this.createPlaylistBridge(artists[0], artists[1])
+      } else if (assistantResponse.actions[0].name === "get_bio") {
+        var artist = ""
+        
+        for (j = 0; j < assistantResponse.entities.length; j ++)
+        {
+          if (assistantResponse.entities[j].entity === "artist")
+          {
+            artist = assistantResponse.entities[j].value
+            
+          }
+        }
+        this.makeBio(artist);
       }
     }
 
@@ -314,6 +329,41 @@ class ExtensionBase extends React.Component{
     }
   }
 
+  async makeBio(a){
+    var names = a.split(" ")
+    var titles="";
+    for (var i = 0; i<names.length; i++){
+      if (i != names.length-1)
+        titles += names[i] + "%20";
+      else
+        titles += names[i]
+    }
+    await fetch("https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro&explaintext&redirects=1&titles="+titles).then((response)=>{
+      response.json().then((x)=>{
+        let p = x.query.pages;
+        let e = "";
+        for(var page in p){
+          e = p[page].extract;
+        }
+        let s = this.state.watsonAssistantResponse+"\n\n"+e;
+        this.setState({watsonAssistantResponse:s})
+      })
+      
+    })
+    // ",{
+    //   method:"GET",
+    //   headers: {
+    //     "format":"json",
+    //     "action":"query",
+    //     "prop":"extracts exintro explaintext",
+    //     "redirects":"1",
+    //     "titles":"Stack%20Overflow"
+    //   }
+    // }).then((response) => {
+    //   var reader = response.json();
+    //   console.log(reader);
+    // })
+  }
   async textToSpeechConversionFetch(textToConvert) {
     let data = {"text": textToConvert};
     await fetch("https://stream.watsonplatform.net/text-to-speech/api/v1/synthesize", {
@@ -527,7 +577,12 @@ class ExtensionBase extends React.Component{
                         <div className={'watson-response-container'}>
                           {this.state.watsonAssistantResponse && 
                             <p className={'watson-response-text'}>{this.state.watsonAssistantResponse}</p>
+                            
                           }
+                          {/* {this.state.bio &&
+                            <p className={'watson-response-text'}>{this.state.bio}</p>
+
+                          } */}
                           {this.state.playlistLink && 
                             <iframe src={this.createEmbedLink(this.state.playlistLink)} 
                                     width="400" 
