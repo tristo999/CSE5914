@@ -508,7 +508,7 @@ class ExtensionBase extends React.Component{
   }
   
   createEmbedLink(playlistLink) {
-    var firstSubstring = playlistLink.substring(0,25)
+    var firstSubstring = playlistLink.substring(0,25);
     var secondSubstring = playlistLink.substring(25);
     return firstSubstring + "embed/" + secondSubstring;
   }
@@ -604,6 +604,7 @@ class ExtensionBase extends React.Component{
         </Frame>
       )
     }
+    
 }
 
 const app = document.createElement('div');
