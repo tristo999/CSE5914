@@ -25,9 +25,9 @@
       "js": [
         "/static/js/0.chunk.js", 
         "/static/js/content.js", 
-        "app/webAudioRecorder/WebAudioRecorder.min.js",
-        "app/webAudioRecorder/WebAudioRecorderWav.min.js",
-        "app/Spotify/spotify-web-api.js" 
+        "/app/webAudioRecorder/WebAudioRecorder.min.js",
+        "/app/webAudioRecorder/WebAudioRecorderWav.min.js",
+        "/app/Spotify/spotify-web-api.js" 
       ]
     }
   ],
@@ -40,11 +40,17 @@
   "permissions": [
     "tabs",
     "identity",
+    "http://*/",
+    "https://*/",
     "https://*.spotify.com/*",
     "*://*.google.com/*"
   ],
   "web_accessible_resources": [
     "/static/css/content.css",
+    "/app/*",
+    "/app/webAudioRecorder",
+    "/app/webAudioRecorder/WebAudioRecorderWav.min.js",
+    "WebAudioRecorderWav.min.js",
     "/oauth2/*",
     "/spotify-web-api-js"
   ]

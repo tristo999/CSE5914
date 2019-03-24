@@ -5,8 +5,10 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Frame, { FrameContextConsumer } from 'react-frame-component';
 import * as SpotifyHelper from "./util/spotify/spotify-helpers";
-
+// import * as WebAudio from "./util/webAudioRecorder/WebAudioRecorder.min.js"
 import "./content.css";
+
+// const WebAudio = require("./util/webAudioRecorder/WebAudioRecorder.js");
 
 // const SpotifyHelper = require("./util/spotify/spotify-helpers");
 
@@ -31,7 +33,8 @@ class ExtensionBase extends React.Component{
         watsonAssistantResponse: "",
         errorText: "",
         playlistLink: "",
-        inputQuery: ""
+        inputQuery: "",
+        wavJs: ""
       };
       this.list = React.createRef();
       this.toggleMicrophone = this.toggleMicrophone.bind(this);
@@ -56,15 +59,28 @@ class ExtensionBase extends React.Component{
             this.setState({isUserAuthenticated: true})
         }
       })
-      
+
+      let script = chrome.extension.getURL('/app/webAudioRecorder/WebAudioRecorderWav.min.js');
+      this.setWavScript(script)
     }
 
     componentDidUpdate() {
       if(localStorage.getItem('spotifyAccessToken') !== "null" && !this.state.isUserAuthenticated) {
-        console.log("there")
         console.log(localStorage.getItem('spotifyAccessToken'))
         this.setState({isUserAuthenticated: true});
       }
+    }
+
+    setWavScript(script)
+    {
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET",script)
+      xhr.onreadystatechange = () => {
+        if(xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+          this.setState({wavJs: xhr.responseText});
+        }
+      };
+      xhr.send();
     }
 
     handleInputQueryChange(e) {
@@ -88,7 +104,6 @@ class ExtensionBase extends React.Component{
   }
 
   async startRecording() {
-
     console.log("startRecording() called");      
     var constraints = { audio: true, video:false }
     let AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -101,7 +116,7 @@ class ExtensionBase extends React.Component{
       let encodingType = 'wav';
   
       let recorder = new window.WebAudioRecorder(input, {
-        workerDir: "app/webAudioRecorder/", // must end with slash
+        workerDir: this.state.wavJs, // must end with slash
         encoding: encodingType,
         numChannels:2, //2 is the default, mp3 encoding supports only 2
         onEncoderLoading: function(recorder, encoding) {
@@ -250,7 +265,6 @@ class ExtensionBase extends React.Component{
 
   analyzeAssistantResponse(assistantResponse) {
     let currentIntent = ""
-    assistantResponse = assistantResponse.output
     if(!assistantResponse) {
       this.setState({errorText: "Something went wrong. Please try again."})
       return;
@@ -304,11 +318,11 @@ class ExtensionBase extends React.Component{
       }
     }
 
-    if (assistantResponse.intents.length > 0) {
+    if (assistantResponse.intents && assistantResponse.intents.length > 0) {
       currentIntent = assistantResponse.intents[0].intent;
       //console.log('Detected intent: #' + currentIntent);
     }
-    if (assistantResponse.generic.length > 0) {
+    if (assistantResponse.generic && assistantResponse.generic.length > 0) {
       this.setState({watsonAssistantResponse: assistantResponse.generic[0].text, errorText:""});
       this.textToSpeechConversionFetch(assistantResponse.generic[0].text);
     }
@@ -559,7 +573,7 @@ app.style.display = "none";
 chrome.runtime.onMessage.addListener(
    function(request, sender, sendResponse) {
       if( request.message === "clicked_browser_action") {
-        console.log("displayed");
+        console.log("user clicked the extension icon");
         toggle();
       }
    }
@@ -574,8 +588,17 @@ function toggle(){
      app.style.display = "none";
    }
 }
-// document.getElementById("my-extension-root").setAttribute("style", "height: 90px;");
-// document.getElementById("my-extension-root").setAttribute("style", "height: 200px;");
+
+// function injectScript(file, node) {
+//   var th = document.getElementsByTagName(node)[0];
+//   var s = document.createElement('script');
+//   s.setAttribute('type', 'text/javascript');
+//   s.setAttribute('id', 'WebAudioRecorderWav');
+//   s.setAttribute('src', file);
+//   th.appendChild(s);
+// }
+// injectScript( chrome.extension.getURL('/app/webAudioRecorder/WebAudioRecorderWav.min.js'), 'body');
+// injectScript('/app/webAudioRecorder/WebAudioRecorderWav.min.js', 'body');
 
 document.body.appendChild(app);
 ReactDOM.render(<ExtensionBase />, app);
