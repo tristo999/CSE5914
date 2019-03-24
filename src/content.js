@@ -266,13 +266,13 @@ class ExtensionBase extends React.Component{
 
   analyzeAssistantResponse(assistantResponse) {
     let currentIntent = ""
+    assistantResponse = assistantResponse.output;
     if(!assistantResponse) {
       this.setState({errorText: "Something went wrong. Please try again."})
       return;
     }
     if (assistantResponse.actions)
     {
-      console.log(assistantResponse);
       // analyzing actions
       if (assistantResponse.actions[0].name === "make_playlist") {
         var j;
@@ -280,7 +280,7 @@ class ExtensionBase extends React.Component{
         var track_name = "Undefined";
         var album_name = "Undefined";
         var numSongs = 10;
-        console.log(assistantResponse.entities)
+
         for (j = 0; j < assistantResponse.entities.length; j ++)
         {
           if (assistantResponse.entities[j].entity === "artist")
@@ -337,6 +337,7 @@ class ExtensionBase extends React.Component{
       //console.log('Detected intent: #' + currentIntent);
     }
     if (assistantResponse.generic && assistantResponse.generic.length > 0) {
+      console.log(assistantResponse.generic[0].text);
       this.setState({watsonAssistantResponse: assistantResponse.generic[0].text, errorText:""});
       this.textToSpeechConversionFetch(assistantResponse.generic[0].text);
     }
@@ -359,23 +360,9 @@ class ExtensionBase extends React.Component{
           e = p[page].extract;
         }
         let s = this.state.watsonAssistantResponse+"\n\n"+e;
-        this.setState({watsonAssistantResponse:s})
-      })
-      
-    })
-    // ",{
-    //   method:"GET",
-    //   headers: {
-    //     "format":"json",
-    //     "action":"query",
-    //     "prop":"extracts exintro explaintext",
-    //     "redirects":"1",
-    //     "titles":"Stack%20Overflow"
-    //   }
-    // }).then((response) => {
-    //   var reader = response.json();
-    //   console.log(reader);
-    // })
+        this.setState({watsonAssistantResponse:s});
+      }); 
+    });
   }
   async textToSpeechConversionFetch(textToConvert) {
     let data = {"text": textToConvert};
@@ -617,12 +604,10 @@ class ExtensionBase extends React.Component{
         </Frame>
       )
     }
-    
 }
 
 const app = document.createElement('div');
 app.id = "my-extension-root";
-
 
 app.style.display = "none";
 chrome.runtime.onMessage.addListener(
@@ -631,8 +616,7 @@ chrome.runtime.onMessage.addListener(
         console.log("user clicked the extension icon");
         toggle();
       }
-   }
-   
+   } 
 );
 
 function toggle(){
@@ -643,17 +627,6 @@ function toggle(){
      app.style.display = "none";
    }
 }
-
-// function injectScript(file, node) {
-//   var th = document.getElementsByTagName(node)[0];
-//   var s = document.createElement('script');
-//   s.setAttribute('type', 'text/javascript');
-//   s.setAttribute('id', 'WebAudioRecorderWav');
-//   s.setAttribute('src', file);
-//   th.appendChild(s);
-// }
-// injectScript( chrome.extension.getURL('/app/webAudioRecorder/WebAudioRecorderWav.min.js'), 'body');
-// injectScript('/app/webAudioRecorder/WebAudioRecorderWav.min.js', 'body');
 
 document.body.appendChild(app);
 ReactDOM.render(<ExtensionBase />, app);
