@@ -32,9 +32,10 @@ class ExtensionBase extends React.Component{
         errorText: "",
         playlistLink: "",
         inputQuery: "",
+        historyToggle: false
         // bio: ""
       };
-      this.wikipedia = 
+      this.history = []
       this.list = React.createRef();
       this.toggleMicrophone = this.toggleMicrophone.bind(this);
       this.startRecording = this.startRecording.bind(this);
@@ -47,6 +48,7 @@ class ExtensionBase extends React.Component{
       this.createEmbedLink = this.createEmbedLink.bind(this);
       this.createPlaylist = this.createPlaylist.bind(this);
       this.createPlaylistBridge = this.createPlaylistBridge.bind(this);
+      this.makeHistory = this.makeHistory.bind(this);
 
       localStorage.setItem('spotifyAccessToken', null);
     }
@@ -210,7 +212,7 @@ class ExtensionBase extends React.Component{
       this.setState({errorText: "Unrecognized input, please try again"})
       return;
     }
-
+    this.history.push("u" + userInputText);
     let curSessionId = this.state.watsonSessionId;
 
     await fetch("https://gateway.watsonplatform.net/assistant/api/v2/assistants/dbdb7d30-0fb5-4b86-8290-22a90b7b467b/sessions?version=2019-02-02", {
@@ -513,7 +515,22 @@ class ExtensionBase extends React.Component{
     return firstSubstring + "embed/" + secondSubstring;
   }
 
+  makeHistory(){
+    var ans = <div></div>
+    for(var h in this.history){
+      let s = h.substring(1);
+      if(h.charAt(0)=='u'){
+        
+      } else {
 
+      }
+    }
+    return(
+      <div>
+        <p className={'watson-response-text'}>{this.state.watsonAssistantResponse}</p>
+      </div>
+    );
+  }
 
     render() {
       let spotifyIconContainerStyle = {};
@@ -594,7 +611,11 @@ class ExtensionBase extends React.Component{
                                     >
                             </iframe>
                           }
+                          {this.state.historyToggle &&
+                            this.makeHistory()
+                          }
                           <p style={{color: "red"}}>{this.state.errorText}</p>
+                          <button onClick={this.setState({historyToggle:true})}>View History</button>
                         </div>
                       </div>
                   )
