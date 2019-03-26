@@ -345,6 +345,12 @@ class ExtensionBase extends React.Component{
         for(var page in p){
           e = p[page].extract;
         }
+        console.log(x);
+        console.log(p);
+        console.log(e);
+        if (e == null) {
+          e = "No information found. Try another search."
+        }
         let s = this.state.watsonAssistantResponse+"\n\n"+e;
         this.setState({watsonAssistantResponse:s})
       })
