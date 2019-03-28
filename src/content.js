@@ -268,11 +268,16 @@ class ExtensionBase extends React.Component{
   }
 
   analyzeAssistantResponse(assistantResponse) {
+    var talkString = ""
     let currentIntent = ""
     assistantResponse = assistantResponse.output;
     if(!assistantResponse) {
       this.setState({errorText: "Something went wrong. Please try again."})
       return;
+    }
+    if (assistantResponse.generic.length > 0) {
+      this.setState({watsonAssistantResponse: assistantResponse.generic[0].text, errorText:""});
+      talkString = assistantResponse.generic[0].text;
     }
     if (assistantResponse.actions)
     {
@@ -307,7 +312,12 @@ class ExtensionBase extends React.Component{
             console.log(numSongs);
           }
         }
+        if (artist_name === "Undefined" && album_name === "Undefined") {
+          this.setState({watsonAssistantResponse: "Error, Did not recognize an Album or an Artist. Please Try Again", errorText:""});
+          talkString = "Error, Did not recognize an Album or an Artist. Please Try Again"
+        } else {
         this.createPlaylist(artist_name,track_name,album_name,numSongs);
+        }
       } else if (assistantResponse.actions[0].name === "make_bridge_playlist") {
         var artists = {}
         var i = 0;
@@ -334,16 +344,11 @@ class ExtensionBase extends React.Component{
         this.makeBio(artist);
       }
     }
-
-    if (assistantResponse.intents && assistantResponse.intents.length > 0) {
+    if (assistantResponse.intents.length > 0) {
       currentIntent = assistantResponse.intents[0].intent;
       //console.log('Detected intent: #' + currentIntent);
     }
-    if (assistantResponse.generic && assistantResponse.generic.length > 0) {
-      console.log(assistantResponse.generic[0].text);
-      this.setState({watsonAssistantResponse: assistantResponse.generic[0].text, errorText:""});
-      this.textToSpeechConversionFetch(assistantResponse.generic[0].text);
-    }
+    this.textToSpeechConversionFetch(talkString);
   }
 
   async makeBio(a){
@@ -355,12 +360,19 @@ class ExtensionBase extends React.Component{
       else
         titles += names[i]
     }
-    await fetch("https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro&explaintext&redirects=1&titles="+titles).then((response)=>{
+    await fetch("https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro&explaintext&redirects=1&titles="+titles, {
+    headers:{
+      "Access-Control-Allow-Origin": "*"
+    }
+    }).then((response)=>{
       response.json().then((x)=>{
         let p = x.query.pages;
         let e = "";
         for(var page in p){
           e = p[page].extract;
+        }
+        if (e == null) {
+          e = "No information found. Try another search."
         }
         let s = this.state.watsonAssistantResponse+"\n\n"+e;
         this.setState({watsonAssistantResponse:s});
@@ -411,6 +423,7 @@ class ExtensionBase extends React.Component{
         return reader.read().then(processAudio);
       });
     }).catch((error) => {
+        console.log("Text to speech is broken")
         console.log(error)
     }); 
   }
@@ -424,25 +437,10 @@ class ExtensionBase extends React.Component{
     console.log("Opening AUTH");
   }
 
-  createPlaylist(artist, track, album, numSongs) {
-      var token = localStorage.getItem("spotifyAccessToken");
-      if (token) {
-          var s = new window.SpotifyWebApi();
-          s.setAccessToken(token);
-          s.getMe().then((value) => {
-              var userID = value.id;
-              var playlistBody = { "name": artist };
-              s.createPlaylist(userID, playlistBody).then((playlistData) => {
-                  console.log("Creating Playlist");
-                  console.log(playlistData);
-                  var playlistID = playlistData.id;
-                  SpotifyHelper.addSongs(artist,track, album, numSongs, playlistID, s);
-                  this.setState({playlistLink : playlistData.external_urls.spotify});
-              });
-          });
+  async createPlaylist(artist, track, album, numSongs) {
       if (numSongs >= 50) {
         this.setState({watsonAssistantResponse : "Please limit number of songs to under 50", errorText:""});
-        console.log("Please limit number of songs to under 50")
+        console.log("Please limit number of songs to under 50");
       } else {
         var token = localStorage.getItem("spotifyAccessToken");
         if (token) {
@@ -451,21 +449,32 @@ class ExtensionBase extends React.Component{
             s.getMe().then((value) => {
                 var userID = value.id;
                 console.log(userID);
-                var playlistBody = { "name": artist };
-                s.createPlaylist(userID, playlistBody).then((playlistData) => {
+                var playlistBody = {}
+                if (artist === "Undefined") {
+                  playlistBody = { "name": album.charAt(0).toUpperCase() + album.slice(1)};
+                } else {
+                  playlistBody = { "name": artist };
+                }
+                s.createPlaylist(userID, playlistBody).then(async (playlistData) => {
                     console.log("Creating Playlist");
                     console.log(playlistData);
                     var playlistID = playlistData.id;
-                    SpotifyHelper.addSongs(artist,track, album, numSongs, playlistID, s);
+                    await SpotifyHelper.addSongs(artist,track, album, numSongs, playlistID, s).then((ErrorCode) => {
+                      if (ErrorCode === "Undefined") 
+                      {
+                        this.setState({watsonAssistantResponse: "Error, No Songs Found", errorText:""});
+                      }
+                    });
                     this.setState({playlistLink : playlistData.external_urls.spotify});
                 });
             });
         } else {}
       }
-    }
   }
 
   async createPlaylistBridge(source, dest) {
+    source = source.charAt(0).toUpperCase() + source.slice(1)
+    dest = dest.charAt(0).toUpperCase() + dest.slice(1)
     var token = localStorage.getItem("spotifyAccessToken");
     if (token) {
       var s = new window.SpotifyWebApi();
@@ -483,7 +492,10 @@ class ExtensionBase extends React.Component{
             url.search = new URLSearchParams(params);
             await fetch((url), {
               method: "GET",
-            }).then((response) => {
+              headers:{
+                "Access-Control-Allow-Origin": "*"
+              }
+            }).then(async (response) => {
               response.json().then(async (data) => {
                 console.log(data);
                 if (data.status == 'ok' && data.path.length >= 2) {
@@ -492,11 +504,16 @@ class ExtensionBase extends React.Component{
                     console.log(msg)
                     var songArray = [];
                     for (var i = 0; i < data.path.length; i++) {
-                      await s.getTrack(data.path[i].tracks[0].id).then((trackData) => {
+                      await s.getTrack(data.path[i].tracks[0].id).then(async (trackData) => {
                         songArray[i] = trackData.uri
                       });
                     }
-                    s.addTracksToPlaylist(playlistID, songArray);
+                    await s.addTracksToPlaylist(playlistID, songArray).then(async (ErrorCode) => {
+                      if (ErrorCode === "Undefined") 
+                      {
+                        this.setState({watsonAssistantResponse: "Error, No Songs Found", errorText:""});
+                      }
+                    });
                     this.setState({playlistLink : playlistData.external_urls.spotify});
                 } else if (data.status == 'ok' && data.path.length == 1) {
                     this.setState({watsonAssistantResponse : "Cannot Bridge Artist to Self"});
