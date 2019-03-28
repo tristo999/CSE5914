@@ -64,3 +64,9 @@
     border-radius: 20px;
     width: fit-content;
  }
+ .watson-response-text.watson{
+   background-color: rgba(136, 255, 167, 0.7);
+ }
+ .watson-response-text.user{
+   background-color: rgba(216, 216, 216, 0.7);
+ }

@@ -212,7 +212,7 @@ class ExtensionBase extends React.Component{
       this.setState({errorText: "Unrecognized input, please try again"})
       return;
     }
-    this.history.push("u" + userInputText);
+    this.history.push({watson:false,message:userInputText});
     let curSessionId = this.state.watsonSessionId;
 
     await fetch("https://gateway.watsonplatform.net/assistant/api/v2/assistants/dbdb7d30-0fb5-4b86-8290-22a90b7b467b/sessions?version=2019-02-02", {
@@ -326,7 +326,7 @@ class ExtensionBase extends React.Component{
       //console.log('Detected intent: #' + currentIntent);
     }
     if (assistantResponse.generic.length > 0) {
-      this.setState({watsonAssistantResponse: assistantResponse.generic[0].text, errorText:""});
+      this.setState({watsonAssistantResponse: assistantResponse.generic[0].text, errorText:""});//here
       this.textToSpeechConversionFetch(assistantResponse.generic[0].text);
     }
   }
@@ -347,7 +347,7 @@ class ExtensionBase extends React.Component{
         for(var page in p){
           e = p[page].extract;
         }
-        let s = this.state.watsonAssistantResponse+"\n\n"+e;
+        let s = this.state.watsonAssistantResponse+"\n\n"+e;//here
         this.setState({watsonAssistantResponse:s})
       })
       
@@ -440,7 +440,7 @@ class ExtensionBase extends React.Component{
               });
           });
       if (numSongs >= 50) {
-        this.setState({watsonAssistantResponse : "Please limit number of songs to under 50", errorText:""});
+        this.setState({watsonAssistantResponse : "Please limit number of songs to under 50", errorText:""});//here
         console.log("Please limit number of songs to under 50")
       } else {
         var token = localStorage.getItem("spotifyAccessToken");
@@ -498,9 +498,9 @@ class ExtensionBase extends React.Component{
                     s.addTracksToPlaylist(playlistID, songArray);
                     this.setState({playlistLink : playlistData.external_urls.spotify});
                 } else if (data.status == 'ok' && data.path.length == 1) {
-                    this.setState({watsonAssistantResponse : "Cannot Bridge Artist to Self"});
+                    this.setState({watsonAssistantResponse : "Cannot Bridge Artist to Self"});//here
                 } else if (data.status != 'ok') {
-                  this.setState({watsonAssistantResponse : "Unable to Bridge Playlist, Try Again"});
+                  this.setState({watsonAssistantResponse : "Unable to Bridge Playlist, Try Again"});//here
                 }
               });
             });
@@ -516,18 +516,12 @@ class ExtensionBase extends React.Component{
   }
 
   makeHistory(){
-    var ans = <div></div>
-    for(var h in this.history){
-      let s = h.substring(1);
-      if(h.charAt(0)=='u'){
-        
-      } else {
-
-      }
-    }
     return(
       <div>
-        <p className={'watson-response-text'}>{this.state.watsonAssistantResponse}</p>
+        <button onClick={this.setState({historyToggle:false})}>Hide History</button>
+        {this.history.map((h, index) => (
+          <p className={'watson-response-text.'+(h.watson ? 'watson':'user')}>{h.message}</p>
+        ))}
       </div>
     );
   }
@@ -615,7 +609,10 @@ class ExtensionBase extends React.Component{
                             this.makeHistory()
                           }
                           <p style={{color: "red"}}>{this.state.errorText}</p>
-                          <button onClick={this.setState({historyToggle:true})}>View History</button>
+                          {!this.state.historyToggle &&
+                            <button onClick={this.setState({historyToggle:true})}>View History</button>
+                          }
+                          
                         </div>
                       </div>
                   )
