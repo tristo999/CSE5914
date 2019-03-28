@@ -5,8 +5,10 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Frame, { FrameContextConsumer } from 'react-frame-component';
 import * as SpotifyHelper from "./util/spotify/spotify-helpers";
-
+import * as WebAudio from "./util/webAudioRecorder/WebAudioRecorder.js"
 import "./content.css";
+
+// const WebAudio = require("./util/webAudioRecorder/WebAudioRecorder.js");
 
 // const SpotifyHelper = require("./util/spotify/spotify-helpers");
 
@@ -32,10 +34,9 @@ class ExtensionBase extends React.Component{
         errorText: "",
         playlistLink: "",
         inputQuery: "",
-        // bio: ""
+        wavJs: "",
+        micDisabled: false
       };
-      this.wikipedia = 
-      this.list = React.createRef();
       this.toggleMicrophone = this.toggleMicrophone.bind(this);
       this.startRecording = this.startRecording.bind(this);
       this.stopRecording = this.stopRecording.bind(this);
@@ -58,15 +59,28 @@ class ExtensionBase extends React.Component{
             this.setState({isUserAuthenticated: true})
         }
       })
-      
+
+      let script = chrome.extension.getURL('/app/webAudioRecorder/WebAudioRecorderWav.min.js');
+      this.setWavScript(script)
     }
 
     componentDidUpdate() {
       if(localStorage.getItem('spotifyAccessToken') !== "null" && !this.state.isUserAuthenticated) {
-        console.log("there")
         console.log(localStorage.getItem('spotifyAccessToken'))
         this.setState({isUserAuthenticated: true});
       }
+    }
+
+    setWavScript(script)
+    {
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET",script)
+      xhr.onreadystatechange = () => {
+        if(xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+          this.setState({wavJs: xhr.responseText});
+        }
+      };
+      xhr.send();
     }
 
     handleInputQueryChange(e) {
@@ -90,7 +104,6 @@ class ExtensionBase extends React.Component{
   }
 
   async startRecording() {
-
     console.log("startRecording() called");      
     var constraints = { audio: true, video:false }
     let AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -101,9 +114,10 @@ class ExtensionBase extends React.Component{
       let audioContext = new AudioContext();
       let input = audioContext.createMediaStreamSource(stream);
       let encodingType = 'wav';
-  
+
+      console.log(window.WebAudioRecorder)
       let recorder = new window.WebAudioRecorder(input, {
-        workerDir: "app/webAudioRecorder/", // must end with slash
+        workerDir: this.state.wavJs, // must end with slash
         encoding: encodingType,
         numChannels:2, //2 is the default, mp3 encoding supports only 2
         onEncoderLoading: function(recorder, encoding) {
@@ -136,8 +150,10 @@ class ExtensionBase extends React.Component{
   
       console.log("Recording started");
   
-    }).catch(function(err) {
+    }).catch((err) => {
       console.log(err)
+      this.setState({micDisabled: true, errorText: "No micrphone available on this page."})
+      console.log("errored out")
         //enable the record button if getUSerMedia() fails
         // recordButton.disabled = false;
         // stopButton.disabled = true;
@@ -176,6 +192,7 @@ class ExtensionBase extends React.Component{
     await fetch("https://stream.watsonplatform.net/speech-to-text/api/v1/recognize", {
       method: "POST",
       headers: {
+        "Access-Control-Allow-Origin": "*",
         "Authorization": "Basic YXBpa2V5OllROWhFV1k4T1lJeU82N0dLcVo1dU94TzFnZHZ3WTQ2cXk4dzBJbnVqZWlv",
         "Content-Type": "audio/wav"
       },
@@ -253,7 +270,7 @@ class ExtensionBase extends React.Component{
   analyzeAssistantResponse(assistantResponse) {
     var talkString = ""
     let currentIntent = ""
-    assistantResponse = assistantResponse.output
+    assistantResponse = assistantResponse.output;
     if(!assistantResponse) {
       this.setState({errorText: "Something went wrong. Please try again."})
       return;
@@ -264,7 +281,6 @@ class ExtensionBase extends React.Component{
     }
     if (assistantResponse.actions)
     {
-      console.log(assistantResponse);
       // analyzing actions
       if (assistantResponse.actions[0].name === "make_playlist") {
         var j;
@@ -272,8 +288,8 @@ class ExtensionBase extends React.Component{
         var track_name = "Undefined";
         var album_name = "Undefined";
         var numSongs = 10;
-        console.log(assistantResponse.entities)
-        for (j = 0; j < assistantResponse.entities.length; j++)
+
+        for (j = 0; j < assistantResponse.entities.length; j ++)
         {
           if (assistantResponse.entities[j].entity === "artist")
           {
@@ -359,23 +375,9 @@ class ExtensionBase extends React.Component{
           e = "No information found. Try another search."
         }
         let s = this.state.watsonAssistantResponse+"\n\n"+e;
-        this.setState({watsonAssistantResponse:s})
-      })
-      
-    })
-    // ",{
-    //   method:"GET",
-    //   headers: {
-    //     "format":"json",
-    //     "action":"query",
-    //     "prop":"extracts exintro explaintext",
-    //     "redirects":"1",
-    //     "titles":"Stack%20Overflow"
-    //   }
-    // }).then((response) => {
-    //   var reader = response.json();
-    //   console.log(reader);
-    // })
+        this.setState({watsonAssistantResponse:s});
+      }); 
+    });
   }
   async textToSpeechConversionFetch(textToConvert) {
     let data = {"text": textToConvert};
@@ -559,9 +561,9 @@ class ExtensionBase extends React.Component{
                             </svg>
                           </div>
                           {!this.state.isUserAuthenticated ?
-                            <button className="login-button" onClick={this.triggerSpotifyAuth}>
-                                  {this.state.test ? 'Spotify Errored Out' : 'Login With Spotify'}
-                            </button>                          
+                              <button className="login-button" onClick={this.triggerSpotifyAuth}>
+                                    {this.state.test ? 'Spotify Errored Out' : 'Login With Spotify'}
+                              </button>  
                             :
                             <div>
                               <div className={"input-container"}>
@@ -579,7 +581,9 @@ class ExtensionBase extends React.Component{
                                   }
                                   {/* <input className={"query-input"} type="text" placeholder={"What Can I Help You With?"} value={this.state.inputQuery} onChange={this.handleInputQueryChange}/> */}
                                 </form>
-                                {this.state.audio ? 
+                                {!this.state.micDisabled && 
+                                <React.Fragment>
+                                  {this.state.audio ? 
                                     <span className={"microphone-icon"} onClick={()=>this.toggleMicrophone(document)}>
                                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#FFF"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1.2-9.1c0-.66.54-1.2 1.2-1.2.66 0 1.2.54 1.2 1.2l-.01 6.2c0 .66-.53 1.2-1.19 1.2-.66 0-1.2-.54-1.2-1.2V4.9zm6.5 6.1c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/><path d="M0 0h24v24H0z" fill="none"/></svg>
                                     </span>
@@ -588,10 +592,27 @@ class ExtensionBase extends React.Component{
                                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#FFF"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/><path d="M0 0h24v24H0z" fill="none"/></svg>
                                     </span>
                                   }
+                                </React.Fragment>
+                                }
                               </div>
                             </div> 
                           }                         
                         </div>
+                        { !this.state.isUserAuthenticated &&
+                          <div className={'welcome-container'}>
+                            <p className={'welcome-title-text'}>
+                              Welcome to Music Buddy
+                            </p>
+                            <p className={'welcome-feature-text'}>
+                              Here is a list of what this extension can do:
+                            </p>
+                            <ol className={'welcome-feature-list'}>
+                              <li className={'welcome-feature-list-item'}>Create playlists given an artist name and/or album name (keyword: "create playlist")</li>
+                              <li className={'welcome-feature-list-item'}>Bridge two artist types together (keyword: "bridge")</li>
+                              <li className={'welcome-feature-list-item'}>Give information about an artist (keyword: "tell me about")</li>
+                            </ol>
+                          </div>
+                        }
                         <div className={'watson-response-container'}>
                           {this.state.watsonAssistantResponse && 
                             <p className={'watson-response-text'}>{this.state.watsonAssistantResponse}</p>
@@ -622,34 +643,29 @@ class ExtensionBase extends React.Component{
         </Frame>
       )
     }
-    
 }
 
 const app = document.createElement('div');
 app.id = "my-extension-root";
 
-
 app.style.display = "none";
 chrome.runtime.onMessage.addListener(
    function(request, sender, sendResponse) {
       if( request.message === "clicked_browser_action") {
-        console.log("displayed");
+        console.log("user clicked the extension icon");
         toggle();
       }
-   }
-   
+   } 
 );
 
 function toggle(){
    if(app.style.display === "none"){
      app.style.display = "block";
-     app.style.height = "90px"
+     app.style.height = "325px"
    }else{
      app.style.display = "none";
    }
 }
-// document.getElementById("my-extension-root").setAttribute("style", "height: 90px;");
-// document.getElementById("my-extension-root").setAttribute("style", "height: 200px;");
 
 document.body.appendChild(app);
 ReactDOM.render(<ExtensionBase />, app);
