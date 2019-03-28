@@ -2,7 +2,7 @@ import { debug } from "util";
 import * as WordToNumber from "../wordToNumber";
 
   // SPOTIFY FLOW  
-  export function addSongs(artist: string, track: string, album:string, num_Songs: any, playlistID: any, spotifyInstance: any) {
+  export async function addSongs(artist: string, track: string, album:string, num_Songs: any, playlistID: any, spotifyInstance: any) {
     //var token = localStorage.getItem("spotifyAccessToken");
     //var s = new window.SpotifyWebApi();
     // s.setAccessToken(token);
@@ -35,11 +35,19 @@ import * as WordToNumber from "../wordToNumber";
     }
     var searchBody = { "limit": limit };
     console.log(searchBody);
-    spotifyInstance.search(queue, searchType, searchBody).then((results : any) => {
+    await spotifyInstance.search(queue, searchType, searchBody).then(async(results : any) => {
+      console.log(results)
         var songArray = [];
         for (var i = 0; i < results.tracks.items.length; i++) {
             songArray[i] = results.tracks.items[i].uri;
         }
-        spotifyInstance.addTracksToPlaylist(playlistID, songArray);
+        var ErrorCode = "";
+        if (results.tracks.items.length === 0 ) {
+          ErrorCode = "Error: No Songs Found";
+        } else {
+          spotifyInstance.addTracksToPlaylist(playlistID, songArray);
+          ErrorCode = "Undefined"
+        }
+        return ErrorCode;
     });
   }
