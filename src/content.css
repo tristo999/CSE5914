@@ -64,3 +64,22 @@
     border-radius: 20px;
     width: fit-content;
  }
+
+ .welcome-container {
+   margin-top: 20px;
+   /* background-color: rgba(0, 255, 67, 0.7); */
+   background-image: linear-gradient(113.83190052944838deg, rgba(0, 226, 123,1) 5.736111111111111%,rgba(0, 166, 190,1) 96.29166666666666%);
+   border-radius: 20px;
+   color: #FFF;
+   padding: 10px 15px;
+ }
+ .welcome-title-text {
+    margin: 0;
+    text-align: center;
+ }
+ .welcome-feature-list {
+   padding-left: 25px;
+ }
+ .welcome-feature-list-item {
+   margin: 10px 0px;
+ }

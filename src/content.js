@@ -5,7 +5,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Frame, { FrameContextConsumer } from 'react-frame-component';
 import * as SpotifyHelper from "./util/spotify/spotify-helpers";
-// import * as WebAudio from "./util/webAudioRecorder/WebAudioRecorder.min.js"
+import * as WebAudio from "./util/webAudioRecorder/WebAudioRecorder.js"
 import "./content.css";
 
 // const WebAudio = require("./util/webAudioRecorder/WebAudioRecorder.js");
@@ -34,10 +34,9 @@ class ExtensionBase extends React.Component{
         errorText: "",
         playlistLink: "",
         inputQuery: "",
-        wavJs: ""
+        wavJs: "",
+        micDisabled: false
       };
-      this.wikipedia = 
-      this.list = React.createRef();
       this.toggleMicrophone = this.toggleMicrophone.bind(this);
       this.startRecording = this.startRecording.bind(this);
       this.stopRecording = this.stopRecording.bind(this);
@@ -115,7 +114,8 @@ class ExtensionBase extends React.Component{
       let audioContext = new AudioContext();
       let input = audioContext.createMediaStreamSource(stream);
       let encodingType = 'wav';
-  
+
+      console.log(window.WebAudioRecorder)
       let recorder = new window.WebAudioRecorder(input, {
         workerDir: this.state.wavJs, // must end with slash
         encoding: encodingType,
@@ -150,8 +150,10 @@ class ExtensionBase extends React.Component{
   
       console.log("Recording started");
   
-    }).catch(function(err) {
+    }).catch((err) => {
       console.log(err)
+      this.setState({micDisabled: true, errorText: "No micrphone available on this page."})
+      console.log("errored out")
         //enable the record button if getUSerMedia() fails
         // recordButton.disabled = false;
         // stopButton.disabled = true;
@@ -190,6 +192,7 @@ class ExtensionBase extends React.Component{
     await fetch("https://stream.watsonplatform.net/speech-to-text/api/v1/recognize", {
       method: "POST",
       headers: {
+        "Access-Control-Allow-Origin": "*",
         "Authorization": "Basic YXBpa2V5OllROWhFV1k4T1lJeU82N0dLcVo1dU94TzFnZHZ3WTQ2cXk4dzBJbnVqZWlv",
         "Content-Type": "audio/wav"
       },
@@ -369,7 +372,7 @@ class ExtensionBase extends React.Component{
     await fetch("https://stream.watsonplatform.net/text-to-speech/api/v1/synthesize", {
       method: "POST",
       headers: {
-        "Authorization": "Basic YXBpa2V5OmVaLVF4Vm1KaGEtVzRJb0NKc2dKdU9haHpBZlhCa0hqdHZZT215b1Mya21t",
+        "Authorization": "Basic YXBpa2V5Olktcmd0aXZra1N2YzdINzVodkRuRDV4VXc5VHVuNmxyUHZ3MUVpMEpMcjBB",
         "Content-Type": "application/json",
         "Accept": "audio/wav"
       },
@@ -541,9 +544,9 @@ class ExtensionBase extends React.Component{
                             </svg>
                           </div>
                           {!this.state.isUserAuthenticated ?
-                            <button className="login-button" onClick={this.triggerSpotifyAuth}>
-                                  {this.state.test ? 'Spotify Errored Out' : 'Login With Spotify'}
-                            </button>                          
+                              <button className="login-button" onClick={this.triggerSpotifyAuth}>
+                                    {this.state.test ? 'Spotify Errored Out' : 'Login With Spotify'}
+                              </button>  
                             :
                             <div>
                               <div className={"input-container"}>
@@ -561,7 +564,9 @@ class ExtensionBase extends React.Component{
                                   }
                                   {/* <input className={"query-input"} type="text" placeholder={"What Can I Help You With?"} value={this.state.inputQuery} onChange={this.handleInputQueryChange}/> */}
                                 </form>
-                                {this.state.audio ? 
+                                {!this.state.micDisabled && 
+                                <React.Fragment>
+                                  {this.state.audio ? 
                                     <span className={"microphone-icon"} onClick={()=>this.toggleMicrophone(document)}>
                                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#FFF"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1.2-9.1c0-.66.54-1.2 1.2-1.2.66 0 1.2.54 1.2 1.2l-.01 6.2c0 .66-.53 1.2-1.19 1.2-.66 0-1.2-.54-1.2-1.2V4.9zm6.5 6.1c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/><path d="M0 0h24v24H0z" fill="none"/></svg>
                                     </span>
@@ -570,10 +575,27 @@ class ExtensionBase extends React.Component{
                                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#FFF"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/><path d="M0 0h24v24H0z" fill="none"/></svg>
                                     </span>
                                   }
+                                </React.Fragment>
+                                }
                               </div>
                             </div> 
                           }                         
                         </div>
+                        { !this.state.isUserAuthenticated &&
+                          <div className={'welcome-container'}>
+                            <p className={'welcome-title-text'}>
+                              Welcome to Music Buddy
+                            </p>
+                            <p className={'welcome-feature-text'}>
+                              Here is a list of what this extension can do:
+                            </p>
+                            <ol className={'welcome-feature-list'}>
+                              <li className={'welcome-feature-list-item'}>Create playlists given an artist name and/or album name (keyword: "create playlist")</li>
+                              <li className={'welcome-feature-list-item'}>Bridge two artist types together (keyword: "bridge")</li>
+                              <li className={'welcome-feature-list-item'}>Give information about an artist (keyword: "tell me about")</li>
+                            </ol>
+                          </div>
+                        }
                         <div className={'watson-response-container'}>
                           {this.state.watsonAssistantResponse && 
                             <p className={'watson-response-text'}>{this.state.watsonAssistantResponse}</p>
@@ -622,7 +644,7 @@ chrome.runtime.onMessage.addListener(
 function toggle(){
    if(app.style.display === "none"){
      app.style.display = "block";
-     app.style.height = "90px"
+     app.style.height = "325px"
    }else{
      app.style.display = "none";
    }
