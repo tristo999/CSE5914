@@ -45,7 +45,15 @@
  .microphone-icon {
     cursor: pointer;
  }
-
+ .history-button {
+   cursor: pointer;
+   color: #1db954;
+   
+   text-align: center
+ }
+ .history-button:hover{
+   color: #FFF;
+ }
  .user-input-container{
    display: flex;
    align-items: center;
@@ -63,10 +71,12 @@
     background-color: rgba(0, 255, 67, 0.7);
     border-radius: 20px;
     width: fit-content;
+    margin-top: 4px;
  }
- .watson-response-text.watson{
+ .watson{
    background-color: rgba(136, 255, 167, 0.7);
  }
- .watson-response-text.user{
+ .user{
    background-color: rgba(216, 216, 216, 0.7);
+   margin-left: auto;
  }

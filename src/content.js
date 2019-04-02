@@ -49,6 +49,7 @@ class ExtensionBase extends React.Component{
       this.createPlaylist = this.createPlaylist.bind(this);
       this.createPlaylistBridge = this.createPlaylistBridge.bind(this);
       this.makeHistory = this.makeHistory.bind(this);
+      this.historyToggle = this.historyToggle.bind(this);
 
       localStorage.setItem('spotifyAccessToken', null);
     }
@@ -212,7 +213,7 @@ class ExtensionBase extends React.Component{
       this.setState({errorText: "Unrecognized input, please try again"})
       return;
     }
-    this.history.push({watson:false,message:userInputText});
+    this.history.unshift({watson:false,message:userInputText,link:false});
     let curSessionId = this.state.watsonSessionId;
 
     await fetch("https://gateway.watsonplatform.net/assistant/api/v2/assistants/dbdb7d30-0fb5-4b86-8290-22a90b7b467b/sessions?version=2019-02-02", {
@@ -328,6 +329,7 @@ class ExtensionBase extends React.Component{
     if (assistantResponse.generic.length > 0) {
       this.setState({watsonAssistantResponse: assistantResponse.generic[0].text, errorText:""});//here
       this.textToSpeechConversionFetch(assistantResponse.generic[0].text);
+      this.history.unshift({watson:true,message:assistantResponse.generic[0].text,link:false});
     }
   }
 
@@ -349,6 +351,7 @@ class ExtensionBase extends React.Component{
         }
         let s = this.state.watsonAssistantResponse+"\n\n"+e;//here
         this.setState({watsonAssistantResponse:s})
+        this.history.unshift({watson:true,message:s,link:false});
       })
       
     })
@@ -436,11 +439,14 @@ class ExtensionBase extends React.Component{
                   console.log(playlistData);
                   var playlistID = playlistData.id;
                   SpotifyHelper.addSongs(artist,track, album, numSongs, playlistID, s);
-                  this.setState({playlistLink : playlistData.external_urls.spotify});
+                  this.setState({playlistLink : playlistData.external_urls.spotify});//here
+                  // this.history.unshift({watson:true,message:playlistData.external_urls.spotify,link:true});
               });
-          });
+          });//this is wierd
       if (numSongs >= 50) {
-        this.setState({watsonAssistantResponse : "Please limit number of songs to under 50", errorText:""});//here
+        let s = "Please limit number of songs to under 50"
+        this.setState({watsonAssistantResponse : s, errorText:""});//here
+        this.history.unshift({watson:true,message:s,link:false});
         console.log("Please limit number of songs to under 50")
       } else {
         var token = localStorage.getItem("spotifyAccessToken");
@@ -456,7 +462,8 @@ class ExtensionBase extends React.Component{
                     console.log(playlistData);
                     var playlistID = playlistData.id;
                     SpotifyHelper.addSongs(artist,track, album, numSongs, playlistID, s);
-                    this.setState({playlistLink : playlistData.external_urls.spotify});
+                    this.setState({playlistLink : playlistData.external_urls.spotify});//here
+                    this.history.unshift({watson:true,message:playlistData.external_urls.spotify,link:true});
                 });
             });
         } else {}
@@ -496,7 +503,7 @@ class ExtensionBase extends React.Component{
                       });
                     }
                     s.addTracksToPlaylist(playlistID, songArray);
-                    this.setState({playlistLink : playlistData.external_urls.spotify});
+                    this.setState({playlistLink : playlistData.external_urls.spotify});//here
                 } else if (data.status == 'ok' && data.path.length == 1) {
                     this.setState({watsonAssistantResponse : "Cannot Bridge Artist to Self"});//here
                 } else if (data.status != 'ok') {
@@ -515,12 +522,25 @@ class ExtensionBase extends React.Component{
     return firstSubstring + "embed/" + secondSubstring;
   }
 
+  historyToggle(){
+    this.setState(prevState => ({historyToggle:!prevState.historyToggle}))
+  }
+
   makeHistory(){
+    console.log(this.history)
     return(
       <div>
-        <button onClick={this.setState({historyToggle:false})}>Hide History</button>
+        <div className={"history-button"} onClick={this.historyToggle}>Show less...</div>
         {this.history.map((h, index) => (
-          <p className={'watson-response-text.'+(h.watson ? 'watson':'user')}>{h.message}</p>
+          !h.link ? <div><p className={'watson-response-text '+(h.watson ? 'watson':'user')}>{h.message}</p></div> : <iframe src={this.createEmbedLink(h.message)} 
+          width="400" 
+          height="80"
+          frameBorder={0} 
+          allowTransparency={true} 
+          allow="encrypted-media"
+          style={{marginTop: "15px"}}
+          >
+  </iframe>
         ))}
       </div>
     );
@@ -582,6 +602,7 @@ class ExtensionBase extends React.Component{
                                     </span>
                                   }
                               </div>
+                              
                             </div> 
                           }                         
                         </div>
@@ -605,12 +626,14 @@ class ExtensionBase extends React.Component{
                                     >
                             </iframe>
                           }
-                          {this.state.historyToggle &&
-                            this.makeHistory()
-                          }
+                        
+                          
                           <p style={{color: "red"}}>{this.state.errorText}</p>
                           {!this.state.historyToggle &&
-                            <button onClick={this.setState({historyToggle:true})}>View History</button>
+                            <div className={"history-button"} onClick={this.historyToggle}>Show more...</div>
+                          } 
+                          {this.state.historyToggle &&
+                            this.makeHistory()
                           }
                           
                         </div>
