@@ -655,6 +655,7 @@ class ExtensionBase extends React.Component{
                               <li className={'welcome-feature-list-item'}>Create playlists given an artist name and/or album name (keyword: "create playlist")</li>
                               <li className={'welcome-feature-list-item'}>Bridge two artist types together (keyword: "bridge")</li>
                               <li className={'welcome-feature-list-item'}>Give information about an artist (keyword: "tell me about")</li>
+                              <li className={'welcome-feature-list-item'}>Ability to request one song (keyword: "play")</li>
                             </ol>
                           </div>
                         }
@@ -681,7 +682,7 @@ class ExtensionBase extends React.Component{
                         
                           
                           <p style={{color: "red"}}>{this.state.errorText}</p>
-                          {!this.state.historyToggle &&
+                          {(this.state.isUserAuthenticated && this.history.length > 2 && !this.state.historyToggle) && 
                             <div className={"history-button"} onClick={this.historyToggle}>Show more...</div>
                           } 
                           {this.state.historyToggle &&
