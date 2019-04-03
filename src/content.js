@@ -610,6 +610,7 @@ class ExtensionBase extends React.Component{
                               <li className={'welcome-feature-list-item'}>Create playlists given an artist name and/or album name (keyword: "create playlist")</li>
                               <li className={'welcome-feature-list-item'}>Bridge two artist types together (keyword: "bridge")</li>
                               <li className={'welcome-feature-list-item'}>Give information about an artist (keyword: "tell me about")</li>
+                              <li className={'welcome-feature-list-item'}>Ability to request one song (keyword: "play")</li>
                             </ol>
                           </div>
                         }
