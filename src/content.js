@@ -5,8 +5,10 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Frame, { FrameContextConsumer } from 'react-frame-component';
 import * as SpotifyHelper from "./util/spotify/spotify-helpers";
-
+import * as WebAudio from "./util/webAudioRecorder/WebAudioRecorder.js"
 import "./content.css";
+
+// const WebAudio = require("./util/webAudioRecorder/WebAudioRecorder.js");
 
 // const SpotifyHelper = require("./util/spotify/spotify-helpers");
 
@@ -32,8 +34,9 @@ class ExtensionBase extends React.Component{
         errorText: "",
         playlistLink: "",
         inputQuery: "",
-        historyToggle: false
-        // bio: ""
+        historyToggle: false,
+        wavJs: "",
+        micDisabled: false
       };
       this.history = []
       this.list = React.createRef();
@@ -61,15 +64,28 @@ class ExtensionBase extends React.Component{
             this.setState({isUserAuthenticated: true})
         }
       })
-      
+
+      let script = chrome.extension.getURL('/app/webAudioRecorder/WebAudioRecorderWav.min.js');
+      this.setWavScript(script)
     }
 
     componentDidUpdate() {
       if(localStorage.getItem('spotifyAccessToken') !== "null" && !this.state.isUserAuthenticated) {
-        console.log("there")
         console.log(localStorage.getItem('spotifyAccessToken'))
         this.setState({isUserAuthenticated: true});
       }
+    }
+
+    setWavScript(script)
+    {
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET",script)
+      xhr.onreadystatechange = () => {
+        if(xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+          this.setState({wavJs: xhr.responseText});
+        }
+      };
+      xhr.send();
     }
 
     handleInputQueryChange(e) {
@@ -93,7 +109,6 @@ class ExtensionBase extends React.Component{
   }
 
   async startRecording() {
-
     console.log("startRecording() called");      
     var constraints = { audio: true, video:false }
     let AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -104,9 +119,10 @@ class ExtensionBase extends React.Component{
       let audioContext = new AudioContext();
       let input = audioContext.createMediaStreamSource(stream);
       let encodingType = 'wav';
-  
+
+      console.log(window.WebAudioRecorder)
       let recorder = new window.WebAudioRecorder(input, {
-        workerDir: "app/webAudioRecorder/", // must end with slash
+        workerDir: this.state.wavJs, // must end with slash
         encoding: encodingType,
         numChannels:2, //2 is the default, mp3 encoding supports only 2
         onEncoderLoading: function(recorder, encoding) {
@@ -139,8 +155,10 @@ class ExtensionBase extends React.Component{
   
       console.log("Recording started");
   
-    }).catch(function(err) {
+    }).catch((err) => {
       console.log(err)
+      this.setState({micDisabled: true, errorText: "No micrphone available on this page."})
+      console.log("errored out")
         //enable the record button if getUSerMedia() fails
         // recordButton.disabled = false;
         // stopButton.disabled = true;
@@ -179,6 +197,7 @@ class ExtensionBase extends React.Component{
     await fetch("https://stream.watsonplatform.net/speech-to-text/api/v1/recognize", {
       method: "POST",
       headers: {
+        "Access-Control-Allow-Origin": "*",
         "Authorization": "Basic YXBpa2V5OllROWhFV1k4T1lJeU82N0dLcVo1dU94TzFnZHZ3WTQ2cXk4dzBJbnVqZWlv",
         "Content-Type": "audio/wav"
       },
@@ -254,15 +273,20 @@ class ExtensionBase extends React.Component{
   }
 
   analyzeAssistantResponse(assistantResponse) {
+    var talkString = ""
     let currentIntent = ""
-    assistantResponse = assistantResponse.output
+    assistantResponse = assistantResponse.output;
     if(!assistantResponse) {
       this.setState({errorText: "Something went wrong. Please try again."})
       return;
     }
+    if (assistantResponse.generic.length > 0) {
+      this.setState({watsonAssistantResponse: assistantResponse.generic[0].text, errorText:""});
+      talkString = assistantResponse.generic[0].text;
+      
+    }
     if (assistantResponse.actions)
     {
-      console.log(assistantResponse);
       // analyzing actions
       if (assistantResponse.actions[0].name === "make_playlist") {
         var j;
@@ -270,7 +294,7 @@ class ExtensionBase extends React.Component{
         var track_name = "Undefined";
         var album_name = "Undefined";
         var numSongs = 10;
-        console.log(assistantResponse.entities)
+
         for (j = 0; j < assistantResponse.entities.length; j ++)
         {
           if (assistantResponse.entities[j].entity === "artist")
@@ -294,7 +318,12 @@ class ExtensionBase extends React.Component{
             console.log(numSongs);
           }
         }
+        if (artist_name === "Undefined" && album_name === "Undefined") {
+          this.setState({watsonAssistantResponse: "Error, Did not recognize an Album or an Artist. Please Try Again", errorText:""});
+          talkString = "Error, Did not recognize an Album or an Artist. Please Try Again"
+        } else {
         this.createPlaylist(artist_name,track_name,album_name,numSongs);
+        }
       } else if (assistantResponse.actions[0].name === "make_bridge_playlist") {
         var artists = {}
         var i = 0;
@@ -321,16 +350,12 @@ class ExtensionBase extends React.Component{
         this.makeBio(artist);
       }
     }
-
     if (assistantResponse.intents.length > 0) {
       currentIntent = assistantResponse.intents[0].intent;
       //console.log('Detected intent: #' + currentIntent);
     }
-    if (assistantResponse.generic.length > 0) {
-      this.setState({watsonAssistantResponse: assistantResponse.generic[0].text, errorText:""});//here
-      this.textToSpeechConversionFetch(assistantResponse.generic[0].text);
-      this.history.unshift({watson:true,message:assistantResponse.generic[0].text,link:false});
-    }
+    this.textToSpeechConversionFetch(talkString);
+    this.history.unshift({watson:true,message:talkString,link:false});
   }
 
   async makeBio(a){
@@ -342,39 +367,32 @@ class ExtensionBase extends React.Component{
       else
         titles += names[i]
     }
-    await fetch("https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro&explaintext&redirects=1&titles="+titles).then((response)=>{
+    await fetch("https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro&explaintext&redirects=1&titles="+titles, {
+    headers:{
+      "Access-Control-Allow-Origin": "*"
+    }
+    }).then((response)=>{
       response.json().then((x)=>{
         let p = x.query.pages;
         let e = "";
         for(var page in p){
           e = p[page].extract;
         }
-        let s = this.state.watsonAssistantResponse+"\n\n"+e;//here
-        this.setState({watsonAssistantResponse:s})
+        if (e == null) {
+          e = "No information found. Try another search."
+        }
+        let s = this.state.watsonAssistantResponse+"\n\n"+e;
+        this.setState({watsonAssistantResponse:s});
         this.history.unshift({watson:true,message:s,link:false});
-      })
-      
-    })
-    // ",{
-    //   method:"GET",
-    //   headers: {
-    //     "format":"json",
-    //     "action":"query",
-    //     "prop":"extracts exintro explaintext",
-    //     "redirects":"1",
-    //     "titles":"Stack%20Overflow"
-    //   }
-    // }).then((response) => {
-    //   var reader = response.json();
-    //   console.log(reader);
-    // })
+      }); 
+    });
   }
   async textToSpeechConversionFetch(textToConvert) {
     let data = {"text": textToConvert};
     await fetch("https://stream.watsonplatform.net/text-to-speech/api/v1/synthesize", {
       method: "POST",
       headers: {
-        "Authorization": "Basic YXBpa2V5OmVaLVF4Vm1KaGEtVzRJb0NKc2dKdU9haHpBZlhCa0hqdHZZT215b1Mya21t",
+        "Authorization": "Basic YXBpa2V5Olktcmd0aXZra1N2YzdINzVodkRuRDV4VXc5VHVuNmxyUHZ3MUVpMEpMcjBB",
         "Content-Type": "application/json",
         "Accept": "audio/wav"
       },
@@ -413,6 +431,7 @@ class ExtensionBase extends React.Component{
         return reader.read().then(processAudio);
       });
     }).catch((error) => {
+        console.log("Text to speech is broken")
         console.log(error)
     }); 
   }
@@ -426,28 +445,10 @@ class ExtensionBase extends React.Component{
     console.log("Opening AUTH");
   }
 
-  createPlaylist(artist, track, album, numSongs) {
-      var token = localStorage.getItem("spotifyAccessToken");
-      if (token) {
-          var s = new window.SpotifyWebApi();
-          s.setAccessToken(token);
-          s.getMe().then((value) => {
-              var userID = value.id;
-              var playlistBody = { "name": artist };
-              s.createPlaylist(userID, playlistBody).then((playlistData) => {
-                  console.log("Creating Playlist");
-                  console.log(playlistData);
-                  var playlistID = playlistData.id;
-                  SpotifyHelper.addSongs(artist,track, album, numSongs, playlistID, s);
-                  this.setState({playlistLink : playlistData.external_urls.spotify});//here
-                  // this.history.unshift({watson:true,message:playlistData.external_urls.spotify,link:true});
-              });
-          });//this is wierd
+  async createPlaylist(artist, track, album, numSongs) {
       if (numSongs >= 50) {
-        let s = "Please limit number of songs to under 50"
-        this.setState({watsonAssistantResponse : s, errorText:""});//here
-        this.history.unshift({watson:true,message:s,link:false});
-        console.log("Please limit number of songs to under 50")
+        this.setState({watsonAssistantResponse : "Please limit number of songs to under 50", errorText:""});
+        this.history.unshift({watson:true,message:"Please limit number of songs to under 50",link:false});
       } else {
         var token = localStorage.getItem("spotifyAccessToken");
         if (token) {
@@ -456,22 +457,38 @@ class ExtensionBase extends React.Component{
             s.getMe().then((value) => {
                 var userID = value.id;
                 console.log(userID);
-                var playlistBody = { "name": artist };
-                s.createPlaylist(userID, playlistBody).then((playlistData) => {
+                var playlistBody = {}
+                if (artist === "Undefined") {
+                  playlistBody = { "name": album.charAt(0).toUpperCase() + album.slice(1)};
+                } else {
+                  playlistBody = { "name": artist };
+                }
+                s.createPlaylist(userID, playlistBody).then(async (playlistData) => {
                     console.log("Creating Playlist");
                     console.log(playlistData);
                     var playlistID = playlistData.id;
-                    SpotifyHelper.addSongs(artist,track, album, numSongs, playlistID, s);
-                    this.setState({playlistLink : playlistData.external_urls.spotify});//here
-                    this.history.unshift({watson:true,message:playlistData.external_urls.spotify,link:true});
+                    let e = false;
+                    await SpotifyHelper.addSongs(artist,track, album, numSongs, playlistID, s).then((ErrorCode) => {
+                      if (ErrorCode === "Undefined") 
+                      {
+                        e = true;
+                        this.setState({watsonAssistantResponse: "Error, No Songs Found", errorText:""});
+                        this.history.unshift({watson:true,message:"Error, No Songs Found",link:false});
+                      }
+                    });
+                    if (!e){
+                      this.setState({playlistLink : playlistData.external_urls.spotify});
+                      this.history.unshift({watson:true,message:playlistData.external_urls.spotify,link:true});
+                    }
                 });
             });
         } else {}
       }
-    }
   }
 
   async createPlaylistBridge(source, dest) {
+    source = source.charAt(0).toUpperCase() + source.slice(1)
+    dest = dest.charAt(0).toUpperCase() + dest.slice(1)
     var token = localStorage.getItem("spotifyAccessToken");
     if (token) {
       var s = new window.SpotifyWebApi();
@@ -489,7 +506,10 @@ class ExtensionBase extends React.Component{
             url.search = new URLSearchParams(params);
             await fetch((url), {
               method: "GET",
-            }).then((response) => {
+              headers:{
+                "Access-Control-Allow-Origin": "*"
+              }
+            }).then(async (response) => {
               response.json().then(async (data) => {
                 console.log(data);
                 if (data.status == 'ok' && data.path.length >= 2) {
@@ -498,16 +518,29 @@ class ExtensionBase extends React.Component{
                     console.log(msg)
                     var songArray = [];
                     for (var i = 0; i < data.path.length; i++) {
-                      await s.getTrack(data.path[i].tracks[0].id).then((trackData) => {
+                      await s.getTrack(data.path[i].tracks[0].id).then(async (trackData) => {
                         songArray[i] = trackData.uri
                       });
                     }
-                    s.addTracksToPlaylist(playlistID, songArray);
-                    this.setState({playlistLink : playlistData.external_urls.spotify});//here
+                    let e = false;
+                    await s.addTracksToPlaylist(playlistID, songArray).then(async (ErrorCode) => {
+                      if (ErrorCode === "Undefined") 
+                      {
+                        e = true;
+                        this.setState({watsonAssistantResponse: "Error, No Songs Found", errorText:""});
+                        this.history.unshift({watson:true,message:"Error, No Songs Found",link:false});
+                      }
+                    });
+                    if (!e){
+                      this.setState({playlistLink : playlistData.external_urls.spotify});
+                      this.history.unshift({watson:true,message:playlistData.external_urls.spotify,link:true});
+                    }
                 } else if (data.status == 'ok' && data.path.length == 1) {
-                    this.setState({watsonAssistantResponse : "Cannot Bridge Artist to Self"});//here
+                    this.setState({watsonAssistantResponse : "Cannot Bridge Artist to Self"});
+                    this.history.unshift({watson:true,message:"Cannot Bridge Artist to Self",link:false});
                 } else if (data.status != 'ok') {
-                  this.setState({watsonAssistantResponse : "Unable to Bridge Playlist, Try Again"});//here
+                  this.setState({watsonAssistantResponse : "Unable to Bridge Playlist, Try Again"});
+                  this.history.unshift({watson:true,message: "Unable to Bridge Playlist, Try Again",link:false});
                 }
               });
             });
@@ -572,9 +605,9 @@ class ExtensionBase extends React.Component{
                             </svg>
                           </div>
                           {!this.state.isUserAuthenticated ?
-                            <button className="login-button" onClick={this.triggerSpotifyAuth}>
-                                  {this.state.test ? 'Spotify Errored Out' : 'Login With Spotify'}
-                            </button>                          
+                              <button className="login-button" onClick={this.triggerSpotifyAuth}>
+                                    {this.state.test ? 'Spotify Errored Out' : 'Login With Spotify'}
+                              </button>  
                             :
                             <div>
                               <div className={"input-container"}>
@@ -592,7 +625,9 @@ class ExtensionBase extends React.Component{
                                   }
                                   {/* <input className={"query-input"} type="text" placeholder={"What Can I Help You With?"} value={this.state.inputQuery} onChange={this.handleInputQueryChange}/> */}
                                 </form>
-                                {this.state.audio ? 
+                                {!this.state.micDisabled && 
+                                <React.Fragment>
+                                  {this.state.audio ? 
                                     <span className={"microphone-icon"} onClick={()=>this.toggleMicrophone(document)}>
                                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#FFF"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1.2-9.1c0-.66.54-1.2 1.2-1.2.66 0 1.2.54 1.2 1.2l-.01 6.2c0 .66-.53 1.2-1.19 1.2-.66 0-1.2-.54-1.2-1.2V4.9zm6.5 6.1c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/><path d="M0 0h24v24H0z" fill="none"/></svg>
                                     </span>
@@ -601,11 +636,28 @@ class ExtensionBase extends React.Component{
                                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#FFF"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/><path d="M0 0h24v24H0z" fill="none"/></svg>
                                     </span>
                                   }
+                                </React.Fragment>
+                                }
                               </div>
                               
                             </div> 
                           }                         
                         </div>
+                        { !this.state.isUserAuthenticated &&
+                          <div className={'welcome-container'}>
+                            <p className={'welcome-title-text'}>
+                              Welcome to Music Buddy
+                            </p>
+                            <p className={'welcome-feature-text'}>
+                              Here is a list of what this extension can do:
+                            </p>
+                            <ol className={'welcome-feature-list'}>
+                              <li className={'welcome-feature-list-item'}>Create playlists given an artist name and/or album name (keyword: "create playlist")</li>
+                              <li className={'welcome-feature-list-item'}>Bridge two artist types together (keyword: "bridge")</li>
+                              <li className={'welcome-feature-list-item'}>Give information about an artist (keyword: "tell me about")</li>
+                            </ol>
+                          </div>
+                        }
                         <div className={'watson-response-container'}>
                           {this.state.watsonAssistantResponse && 
                             <p className={'watson-response-text'}>{this.state.watsonAssistantResponse}</p>
@@ -645,34 +697,29 @@ class ExtensionBase extends React.Component{
         </Frame>
       )
     }
-    
 }
 
 const app = document.createElement('div');
 app.id = "my-extension-root";
 
-
 app.style.display = "none";
 chrome.runtime.onMessage.addListener(
    function(request, sender, sendResponse) {
       if( request.message === "clicked_browser_action") {
-        console.log("displayed");
+        console.log("user clicked the extension icon");
         toggle();
       }
-   }
-   
+   } 
 );
 
 function toggle(){
    if(app.style.display === "none"){
      app.style.display = "block";
-     app.style.height = "90px"
+     app.style.height = "325px"
    }else{
      app.style.display = "none";
    }
 }
-// document.getElementById("my-extension-root").setAttribute("style", "height: 90px;");
-// document.getElementById("my-extension-root").setAttribute("style", "height: 200px;");
 
 document.body.appendChild(app);
 ReactDOM.render(<ExtensionBase />, app);

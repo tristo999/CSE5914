@@ -8,6 +8,7 @@ chrome.browserAction.onClicked.addListener(function(tab) {
               {"message": "clicked_browser_action"}
           );
 	});
+
 	return Promise.resolve("Dummy response to keep the console quiet");
 });
 
