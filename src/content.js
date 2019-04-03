@@ -34,9 +34,12 @@ class ExtensionBase extends React.Component{
         errorText: "",
         playlistLink: "",
         inputQuery: "",
+        historyToggle: false,
         wavJs: "",
         micDisabled: false
       };
+      this.history = []
+      this.list = React.createRef();
       this.toggleMicrophone = this.toggleMicrophone.bind(this);
       this.startRecording = this.startRecording.bind(this);
       this.stopRecording = this.stopRecording.bind(this);
@@ -48,6 +51,8 @@ class ExtensionBase extends React.Component{
       this.createEmbedLink = this.createEmbedLink.bind(this);
       this.createPlaylist = this.createPlaylist.bind(this);
       this.createPlaylistBridge = this.createPlaylistBridge.bind(this);
+      this.makeHistory = this.makeHistory.bind(this);
+      this.historyToggle = this.historyToggle.bind(this);
 
       localStorage.setItem('spotifyAccessToken', null);
     }
@@ -227,7 +232,7 @@ class ExtensionBase extends React.Component{
       this.setState({errorText: "Unrecognized input, please try again"})
       return;
     }
-
+    this.history.unshift({watson:false,message:userInputText,link:false});
     let curSessionId = this.state.watsonSessionId;
 
     await fetch("https://gateway.watsonplatform.net/assistant/api/v2/assistants/dbdb7d30-0fb5-4b86-8290-22a90b7b467b/sessions?version=2019-02-02", {
@@ -278,6 +283,7 @@ class ExtensionBase extends React.Component{
     if (assistantResponse.generic.length > 0) {
       this.setState({watsonAssistantResponse: assistantResponse.generic[0].text, errorText:""});
       talkString = assistantResponse.generic[0].text;
+      
     }
     if (assistantResponse.actions)
     {
@@ -349,6 +355,7 @@ class ExtensionBase extends React.Component{
       //console.log('Detected intent: #' + currentIntent);
     }
     this.textToSpeechConversionFetch(talkString);
+    this.history.unshift({watson:true,message:talkString,link:false});
   }
 
   async makeBio(a){
@@ -376,6 +383,7 @@ class ExtensionBase extends React.Component{
         }
         let s = this.state.watsonAssistantResponse+"\n\n"+e;
         this.setState({watsonAssistantResponse:s});
+        this.history.unshift({watson:true,message:s,link:false});
       }); 
     });
   }
@@ -440,7 +448,7 @@ class ExtensionBase extends React.Component{
   async createPlaylist(artist, track, album, numSongs) {
       if (numSongs >= 50) {
         this.setState({watsonAssistantResponse : "Please limit number of songs to under 50", errorText:""});
-        console.log("Please limit number of songs to under 50");
+        this.history.unshift({watson:true,message:"Please limit number of songs to under 50",link:false});
       } else {
         var token = localStorage.getItem("spotifyAccessToken");
         if (token) {
@@ -459,13 +467,19 @@ class ExtensionBase extends React.Component{
                     console.log("Creating Playlist");
                     console.log(playlistData);
                     var playlistID = playlistData.id;
+                    let e = false;
                     await SpotifyHelper.addSongs(artist,track, album, numSongs, playlistID, s).then((ErrorCode) => {
                       if (ErrorCode === "Undefined") 
                       {
+                        e = true;
                         this.setState({watsonAssistantResponse: "Error, No Songs Found", errorText:""});
+                        this.history.unshift({watson:true,message:"Error, No Songs Found",link:false});
                       }
                     });
-                    this.setState({playlistLink : playlistData.external_urls.spotify});
+                    if (!e){
+                      this.setState({playlistLink : playlistData.external_urls.spotify});
+                      this.history.unshift({watson:true,message:playlistData.external_urls.spotify,link:true});
+                    }
                 });
             });
         } else {}
@@ -508,17 +522,25 @@ class ExtensionBase extends React.Component{
                         songArray[i] = trackData.uri
                       });
                     }
+                    let e = false;
                     await s.addTracksToPlaylist(playlistID, songArray).then(async (ErrorCode) => {
                       if (ErrorCode === "Undefined") 
                       {
+                        e = true;
                         this.setState({watsonAssistantResponse: "Error, No Songs Found", errorText:""});
+                        this.history.unshift({watson:true,message:"Error, No Songs Found",link:false});
                       }
                     });
-                    this.setState({playlistLink : playlistData.external_urls.spotify});
+                    if (!e){
+                      this.setState({playlistLink : playlistData.external_urls.spotify});
+                      this.history.unshift({watson:true,message:playlistData.external_urls.spotify,link:true});
+                    }
                 } else if (data.status == 'ok' && data.path.length == 1) {
                     this.setState({watsonAssistantResponse : "Cannot Bridge Artist to Self"});
+                    this.history.unshift({watson:true,message:"Cannot Bridge Artist to Self",link:false});
                 } else if (data.status != 'ok') {
                   this.setState({watsonAssistantResponse : "Unable to Bridge Playlist, Try Again"});
+                  this.history.unshift({watson:true,message: "Unable to Bridge Playlist, Try Again",link:false});
                 }
               });
             });
@@ -533,7 +555,29 @@ class ExtensionBase extends React.Component{
     return firstSubstring + "embed/" + secondSubstring;
   }
 
+  historyToggle(){
+    this.setState(prevState => ({historyToggle:!prevState.historyToggle}))
+  }
 
+  makeHistory(){
+    console.log(this.history)
+    return(
+      <div>
+        <div className={"history-button"} onClick={this.historyToggle}>Show less...</div>
+        {this.history.map((h, index) => (
+          !h.link ? <div><p className={'watson-response-text '+(h.watson ? 'watson':'user')}>{h.message}</p></div> : <iframe src={this.createEmbedLink(h.message)} 
+          width="400" 
+          height="80"
+          frameBorder={0} 
+          allowTransparency={true} 
+          allow="encrypted-media"
+          style={{marginTop: "15px"}}
+          >
+  </iframe>
+        ))}
+      </div>
+    );
+  }
 
     render() {
       let spotifyIconContainerStyle = {};
@@ -595,6 +639,7 @@ class ExtensionBase extends React.Component{
                                 </React.Fragment>
                                 }
                               </div>
+                              
                             </div> 
                           }                         
                         </div>
@@ -634,7 +679,16 @@ class ExtensionBase extends React.Component{
                                     >
                             </iframe>
                           }
+                        
+                          
                           <p style={{color: "red"}}>{this.state.errorText}</p>
+                          {!this.state.historyToggle &&
+                            <div className={"history-button"} onClick={this.historyToggle}>Show more...</div>
+                          } 
+                          {this.state.historyToggle &&
+                            this.makeHistory()
+                          }
+                          
                         </div>
                       </div>
                   )
