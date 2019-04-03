@@ -383,7 +383,7 @@ class ExtensionBase extends React.Component{
         }
         let s = this.state.watsonAssistantResponse+"\n\n"+e;
         this.setState({watsonAssistantResponse:s});
-        this.history.unshift({watson:true,message:s,link:false});
+        this.history.unshift({watson:true,message:e,link:false});
       }); 
     });
   }
