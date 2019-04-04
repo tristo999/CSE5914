@@ -288,7 +288,7 @@ class ExtensionBase extends React.Component{
     if (assistantResponse.actions)
     {
       // analyzing actions
-      if (assistantResponse.actions[0].name === "make_playlist") {
+      if (assistantResponse.actions[0].name === "create_playlist") {
         var j;
         var artist_name = "Undefined";
         var track_name = "Undefined";
@@ -348,6 +348,26 @@ class ExtensionBase extends React.Component{
           }
         }
         this.makeBio(artist);
+      } else if (assistantResponse.actions[0].name === "play_song") {
+        var artist = "Undefined"
+        var album = "Undefined"
+        var track = "Undefined"
+        for (j = 0; j < assistantResponse.entities.length; j ++)
+        {
+          if (assistantResponse.entities[j].entity === "artist")
+          {
+            artist = assistantResponse.entities[j].value
+          }
+          if (assistantResponse.entities[j].entity === "album")
+          {
+            album = assistantResponse.entities[j].value
+          }
+          if (assistantResponse.entities[j].entity === "song")
+          {
+            track = assistantResponse.entities[j].value
+          }
+        }
+        this.getSingleSong(artist,album,track);
       }
     }
     if (assistantResponse.intents.length > 0) {
@@ -482,7 +502,9 @@ class ExtensionBase extends React.Component{
                     }
                 });
             });
-        } else {}
+        } else {
+
+        }
       }
   }
 
@@ -546,6 +568,52 @@ class ExtensionBase extends React.Component{
             });
         });
       });
+    }
+  }
+
+  async getSingleSong(artist, album, title) {
+    if (title != "Undefined") {
+      var token = localStorage.getItem("spotifyAccessToken");
+      if (token) {
+        var s = new window.SpotifyWebApi();
+        s.setAccessToken(token);
+        s.getMe().then(async (value) => {
+            var userID = value.id;
+            console.log(userID);
+            var started = false;
+            var queue = "";
+            if (artist != "Undefined") {
+            queue += "artist:" +  artist;
+              started = true;
+            }
+            if (title != "Undefined") {
+            if (started) {
+                queue += " AND ";
+            }
+              queue += "track:" + title;
+            started = true;
+            }
+            if (album != "Undefined") {
+              if (started) {
+                queue += " AND ";
+              }
+            queue += "album:" +  album;
+          }
+          console.log("Search: " + queue);
+          var searchType = ["track"];
+          var searchBody = { "limit": 1 };
+          await s.search(queue, searchType, searchBody).then(async(results) => {
+              console.log(results);
+              this.setState({playlistLink : results.tracks.items[0].external_urls.spotify});
+              this.history.unshift({watson:true,message:results.tracks.items[0].external_urls.spotify,link:true});
+          });
+        });
+      } else {
+        // Errors 
+      }
+    } else {
+      this.setState({watsonAssistantResponse: "Error, Must have Track Name", errorText:""});
+      this.history.unshift({watson:true,message:"Error, Must have Track Name",link:false});
     }
   }
   
