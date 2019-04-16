@@ -100,3 +100,17 @@
 .welcome-feature-list-item {
   margin: 10px 0px;
 }
+
+.mic-beta-warning {
+  background-color: rgb(243, 72, 104);
+  border-radius: 20px;
+  padding: 10px 15px;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.mic-beta-warning-text {
+  color: #FFF;
+  margin: 0;
+  margin-bottom: 5px;
+}

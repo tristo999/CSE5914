@@ -36,7 +36,8 @@ class ExtensionBase extends React.Component{
         inputQuery: "",
         historyToggle: false,
         wavJs: "",
-        micDisabled: false
+        micDisabled: false,
+        showBetaWarning: false,
       };
       this.history = []
       this.list = React.createRef();
@@ -53,6 +54,8 @@ class ExtensionBase extends React.Component{
       this.createPlaylistBridge = this.createPlaylistBridge.bind(this);
       this.makeHistory = this.makeHistory.bind(this);
       this.historyToggle = this.historyToggle.bind(this);
+      this.handleMicHover = this.handleMicHover.bind(this);
+      this.handleMicUnHover = this.handleMicUnHover.bind(this);
 
       localStorage.setItem('spotifyAccessToken', null);
     }
@@ -190,6 +193,13 @@ class ExtensionBase extends React.Component{
       this.startRecording();
     }
     this.setState({iFrameDoc})
+  }
+
+  handleMicHover() {
+    this.setState({showBetaWarning: true})
+  }
+  handleMicUnHover() {
+    this.setState({showBetaWarning: false})
   }
 
   // WATSON FLOW
@@ -587,11 +597,11 @@ class ExtensionBase extends React.Component{
               started = true;
             }
             if (title != "Undefined") {
-            if (started) {
+              if (started) {
                 queue += " AND ";
-            }
+              }
               queue += "track:" + title;
-            started = true;
+              started = true;
             }
             if (album != "Undefined") {
               if (started) {
@@ -604,16 +614,25 @@ class ExtensionBase extends React.Component{
           var searchBody = { "limit": 1 };
           await s.search(queue, searchType, searchBody).then(async(results) => {
               console.log(results);
-              this.setState({playlistLink : results.tracks.items[0].external_urls.spotify});
-              this.history.unshift({watson:true,message:results.tracks.items[0].external_urls.spotify,link:true});
+              if(results.tracks.items.length > 0) {
+                this.setState({playlistLink : results.tracks.items[0].external_urls.spotify});
+                this.history.unshift({watson:true,message:results.tracks.items[0].external_urls.spotify,link:true});
+              }
+              else {
+                this.setState({errorText: `Error, track name: ${title} not recognized.`});
+                // this.setState({watsonAssistantResponse: `Error, track name: ${title} not recognized.`, errorText:""});
+                // this.history.unshift({watson:true,message:`Error, track name: ${title} not recognized.`,link:false});
+              }
+
           });
         });
       } else {
         // Errors 
       }
     } else {
-      this.setState({watsonAssistantResponse: "Error, Must have Track Name", errorText:""});
-      this.history.unshift({watson:true,message:"Error, Must have Track Name",link:false});
+      this.setState({errorText:"Error, Must have Track Name"});
+      // this.setState({watsonAssistantResponse: "Error, Must have Track Name", errorText:""});
+      // this.history.unshift({watson:true,message:"Error, Must have Track Name",link:false});
     }
   }
   
@@ -696,11 +715,11 @@ class ExtensionBase extends React.Component{
                                 {!this.state.micDisabled && 
                                 <React.Fragment>
                                   {this.state.audio ? 
-                                    <span className={"microphone-icon"} onClick={()=>this.toggleMicrophone(document)}>
+                                    <span className={"microphone-icon"} onMouseEnter={this.handleMicHover} onMouseLeave={this.handleMicUnHover} onClick={()=>this.toggleMicrophone(document)}>
                                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#FFF"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1.2-9.1c0-.66.54-1.2 1.2-1.2.66 0 1.2.54 1.2 1.2l-.01 6.2c0 .66-.53 1.2-1.19 1.2-.66 0-1.2-.54-1.2-1.2V4.9zm6.5 6.1c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/><path d="M0 0h24v24H0z" fill="none"/></svg>
                                     </span>
                                     :
-                                    <span className={"microphone-icon"} onClick={()=>this.toggleMicrophone(document)}>
+                                    <span className={"microphone-icon"} onMouseEnter={this.handleMicHover} onMouseLeave={this.handleMicUnHover} onClick={()=>this.toggleMicrophone(document)}>
                                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#FFF"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/><path d="M0 0h24v24H0z" fill="none"/></svg>
                                     </span>
                                   }
@@ -727,15 +746,18 @@ class ExtensionBase extends React.Component{
                             </ol>
                           </div>
                         }
+                        {this.state.showBetaWarning &&
+                          <div className={'mic-beta-warning'}>
+                            <p className={'mic-beta-warning-text'}>💻 Microphone functionality is in beta development 💻</p>
+                            <p className={'mic-beta-warning-text'}>🚧 Please use with caution 🚧</p>
+                            <p className={'mic-beta-warning-text'}>😊 We would really prefer if you used the text input 😊</p>
+                          </div>
+                        }
                         <div className={'watson-response-container'}>
                           {this.state.watsonAssistantResponse && 
                             <p className={'watson-response-text'}>{this.state.watsonAssistantResponse}</p>
                             
                           }
-                          {/* {this.state.bio &&
-                            <p className={'watson-response-text'}>{this.state.bio}</p>
-
-                          } */}
                           {this.state.playlistLink && 
                             <iframe src={this.createEmbedLink(this.state.playlistLink)} 
                                     width="400" 
